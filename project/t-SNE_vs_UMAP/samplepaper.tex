@@ -1,0 +1,184 @@
+% This is samplepaper.tex, a sample chapter demonstrating the
+% LLNCS macro package for Springer Computer Science proceedings;
+% Version 2.20 of 2017/10/04
+%
+\documentclass[runningheads]{llncs}
+%
+\usepackage{amsmath}
+\usepackage{booktabs} % For pretty tables
+\usepackage{caption} % For caption spacing
+\usepackage{subcaption} % For sub-figures
+\usepackage{graphicx}
+\usepackage{pgfplots}
+\usepackage[all]{nowidow}
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usetikzlibrary{er,positioning,bayesnet}
+\usepackage{multicol}
+\usepackage{algpseudocode,algorithm,algorithmicx}
+\usepackage{minted}
+\usepackage{hyperref}
+\usepackage[inline]{enumitem} % Horizontal lists
+% Used for displaying a sample figure. If possible, figure files should
+% be included in EPS format.
+%
+% If you use the hyperref package, please uncomment the following line
+% to display URLs in blue roman font according to Springer's eBook style:
+% \renewcommand\UrlFont{\color{blue}\rmfamily}
+
+\newcommand{\card}[1]{\left\vert{#1}\right\vert}
+\newcommand*\Let[2]{\State #1 $\gets$ #2}
+\definecolor{blue}{HTML}{1F77B4}
+\definecolor{orange}{HTML}{FF7F0E}
+\definecolor{green}{HTML}{2CA02C}
+
+\pgfplotsset{compat=1.14}
+
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.85}
+\renewcommand{\textfraction}{0.15}
+\renewcommand{\floatpagefraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\setlength{\floatsep}{3pt plus 1pt minus 1pt}
+\setlength{\textfloatsep}{3pt plus 1pt minus 1pt}
+\setlength{\intextsep}{3pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{2pt plus 1pt minus 1pt}
+
+\begin{document}
+%
+\title{Review article of t-SNE \textit{vs} UMAP}
+%
+%\titlerunning{Abbreviated paper title}
+% If the paper title is too long for the running head, you can set
+% an abbreviated paper title here
+%
+\author{Suchanun Piriyasatit \and
+Suchanuch Piriyasatit\and
+Kriangsak Thuiprakhon}
+%
+%\authorrunning{F. Author et al.}
+% First names are abbreviated in the running head.
+% If there are more than two authors, 'et al.' is used.
+%
+\institute{Mahidol University International College, Nakhon Pathom, Thailand}
+%
+\maketitle              % typeset the header of the contribution
+%
+\section{Introduction}
+    The current harvesting of data goes on to the level that it is practically impossible to be interpreted without an aid of visualizations techniques. 
+   This report will give a brief introduction to the two visualization techniques: t-Stochastic Neighbor Embedding and Uniform Manifold Approximation and Projection for Dimension Reduction. Particularly, the two techniques try map a set of data points in high dimensions into one with lower dimensions (i.e., 1, 2 or 3 dimensions). In fact, we will (1) give a summary of t-SNE and UMAP, (2) present the selection among the two techniques with regards to the nature of the given data set, (3) present the implementation of a parallelized algorithm of UMAP, (4) analyze the actual running time of UMAP, as oppose to the presented empirical time complexity in the original paper. 
+\section{ t-Stochastic Neighbor Embedding (t-SNE)}
+	    
+		\textbf{Goal:} Convert high-dimensional datapoints $X=\left\{x_{1}, x_{2}, \ldots, x_{n}\right\}$ into two or three-dimensional $Y = \left\{y_{1}, y_{2}, \dots, y_{n}\right\}$ that  correctly model similar and dissimilar points.
+		\subsection{SNE}
+		\textbf{Procedures:} 
+		\\
+		1. Convert high-dimensional Euclidean distances between datapoints in $X$ into conditional probabilities which represents similarities, $p_{j|i}$ \\
+		\\
+		\textbf{Def:} \textbf{(In high dimension)} $p_{j | i}$ is the probability that $x_i$ will pick $x_j$ as its neighbor if neighbors were picked in proportion to their probability density under a Gaussian centered at $x_i$.
+		$$p_{j | i}=\frac{\exp \left(-\left\|x_{i}-x_{j}\right\|^{2} / 2 \sigma_{i}^{2}\right)}{\sum_{k \neq i} \exp \left(-\left\|x_{i}-x_{k}\right\|^{2} / 2 \sigma_{i}^{2}\right)}$$
+		$\sigma_i$ = the variance of the Gaussian centered at $x_i$\\
+		We set $p_{i|i} = 0$ (because we are only interested in pair-wise data)\\
+		\\
+		2. Given any low-dimensional counterparts $Y$, we can compute similar conditional probabilities, $q_{j|i}$\\
+		\\
+		\textbf{Def:} \textbf{(In low dimension)} $q_{j | i}$ is similar to $p_{j|i}$ but we set the Guassian's variance $\sigma_{i} = \dfrac{1}{\sqrt{2}}$. 
+		$$q_{j | i}=\frac{\exp \left(-\left\|y_{i}-y_{j}\right\|^{2}\right)}{\sum_{k \neq i} \exp \left(-\left\|y_{i}-y_{k}\right\|^{2}\right)}$$\\
+		\\
+		We set $q_{i|i} = 0$ (because we are only interested in pair-wise data)\\
+		\\
+		\textbf{observation: }If $Y$ is a good mapping of $X$,  $p_{j|i}$ should be equal to $q_{j|i}$. So we want to minimize the mismatch between $p_{j|i}$ and $q_{j|i}.$\\
+		\\
+		3. Use KL-divergence to measure the information loss when we use $q_{j|i}$ to approximate $p_{j|i}$.  KL-divergence is simply the expected value of the log-ratio of the two distribution $P$ and $Q$:
+		$$Cost=\sum_{i} K L\left(P_{i} \| Q_{i}\right)=\sum_{i} \sum_{j} p_{j | i} \log \frac{p_{j | i} }{q_{j | i} }$$\\
+		\begin{mdframed}
+			\textbf{What is KL-divergence?}\\
+			......
+			\end{mdframed}
+		\textbf{observation of cost function:}\\
+		KL-divergence is not symmetric so ....\\
+		\begin{mdframed}
+		\textbf{How to choose Guassian's variance $\sigma_i$ for $p_{i|j}$?}\\
+		\textbf{idea:} 
+		\\
+		1. We \emph{pick} a perplexity. (see below)\\
+		2. Perform a binary search for $\sigma_i$ that produces a $P_i$ with the same perplexity. (perplexity increases monotonically with the variance $\sigma_i$)\\
+		\\
+		\textbf{def:} the entropy of $P_i$ (measured in bits) is a measurement of randomness of $P_i$
+		$$H(P_i) = -\sum_{j} p_{j | i} \log _{2} p_{j | i}$$
+		\\
+		(high entropy $\rightarrow$ messy data)\\
+		\\
+		\textbf{def:} Perplexity of $P_i$ tells us the effective number of neighbors,
+		$$Perp(P_i) = 2^{H(P_i)}$$
+		\end{mdframed}
+	4. Use gradient descent method to minimize the cost function in 3. The gradient of the cost function is:
+	$$\frac{\delta C}{\delta y_{i}}=2 \sum_{j}\left(p_{j | i}-q_{j | i}+p_{i | j}-q_{i | j}\right)\left(y_{i}-y_{j}\right)$$
+	The gradient update is 
+	$$\mathcal{Y}^{(t)}=\mathcal{Y}^{(t-1)}+\eta \frac{\delta C}{\delta \mathcal{Y}}+\alpha(t)\left(\mathcal{Y}^{(t-1)}-\mathcal{Y}^{(t-2)}\right)$$
+	$\eta$ = learning rate\\
+	$\alpha(t) =$ momentum at iteration $t$ (need this term to avoid poor local minima and to speed up the optimization.)
+	\subsection{   Symmetric SNE}
+	Instead of minimizing the Kullback-Leibler divergences between the condi- tional probabilities $p_{j|i}$ and $q_{j|i}$, we can minimize a single Kullback-Leibler divergence between a joint probability distribution, $P$, (in the high-dimensional space) and a joint probability distribution, Q (in the low-dimensional space)\\
+	\\
+	\textbf{What is the difference?}\\
+	- in a joint probability distribution of $P$, $p_{ji} = p_{ij}$.\\
+	- in a joint probability distribution of $Q$, $q_{ji} = q_{ij}$.\\
+	(unlike in the conditional probability where $p_{i|j}$ is not neccessary equal to $p_{j|i}$)\\
+	\\
+	\textbf{Why?} \\
+	- will give a simpler form of gradient.\\
+	- produce a map $Y$ in low-dimensional space that is just as good, sometimes a little better.\\
+	\\
+	Our cost function of KL-divergence then is
+	$$Cost=K L(P \| Q)=\sum_{i} \sum_{j} p_{i j} \log \frac{p_{i j}}{q_{i j}}$$
+	\subsection{Problems with SNE}
+	\begin{itemize}
+		\item Need extra computation time to get good result.
+		\item Hard to optimize. (a lot of exponentials in gradient)
+		\item \textbf{Crowding problem} = ....
+	\end{itemize}
+	\newpage
+	\section{UMAP}
+	Theoretical basis: ...\\
+	UMAP constructs a weighted k-neighbor graph to represent a high-dimensional data and compute a structurally similar low-dimensional graph.
+	\subsection{ High-Dimensional Graph Construction}
+	A weighted k-neighbor graph is computed. Given the following input, dataset $X=\left\{x_{1}, \ldots, x_{N}\right\}$,
+	metric or dissimilarity measure $d: X \times X \rightarrow \mathbb{R}_{>0}$, and an integer $k$. For each $x_i$, compute the set  \(\left\{x_{i_{1}}, \dots, x_{i_{k}}\right\}\) of its $k$ nearest neighbors using the metric $d$.\\
+	\\
+	We then construct a weighted directed graph from pairs of nearest neighbors, \(\bar{G}=(V, E, w)\), where $V$ is the set of $X$ and $E$ is the set of pairs of nearest neighbors, \(\left\{\left(x_{i}, x_{i_{j}}\right) | 1 \leq j \leq k, 1 \leq i \leq N\right\}\) and the weight function for each $x_i$ describing the similarity as $$w\left(\left(x_{i}, x_{i_{j}}\right)\right)=\exp \left(\frac{-\max \left(0, d\left(x_{i}, x_{i_{j}}\right)-\rho_{i}\right)}{\sigma_{i}}\right)$$ 
+	$$w ((x_i, x_k)) = 0 , \forall x_k \notin \text{ k-nearest neighbor of }x_i$$
+	where
+	$$ \rho_{i}=\min \left\{d\left(x_{i}, x_{i_{j}}\right) | 1 \leq j \leq k, d\left(x_{i}, x_{i_{j}}\right)>0\right\}$$ and \(\sigma_{i}\) to be the value such that the sum of the weights sum up to $\log_2(k)$, i.e.,
+	$$ \sum_{j=1}^{k} \exp \left(\frac{-\max \left(0, d\left(x_{i}, x_{i_{j}}\right)-\rho_{i}\right)}{\sigma_{i}}\right)=\log _{2}(k)$$
+	
+	\subsection{ Low-Dimensional Graph Construction }
+	UMAP initializes low-dimensional data $Y$ using symmetric normalized Laplacian method ....\\ It uses stochastic gradient descent to minimize a cross entropy loss function.\\
+	\\
+	\textbf{Definition:} Fuzzy Set Cross Entropy Function
+	$$C(X, Y)=\sum_{i} \sum_{j}\left[w((x_i, x_j)) \log \left(\frac{w((x_i, x_j))}{\Phi(y_i, y_j)}\right)+\left(1-w((x_i, x_j))\right) \log \left(\frac{1-w((x_i, x_j))}{1-\Phi(y_i, y_j)}\right)\right]$$
+	where $\Phi$ is an approximation of similarity weight between two points defined as follows
+	\\
+	\\
+	\textbf{Definition:} \(\Phi: \mathbb{R}^{d} \times \mathbb{R}^{d} \rightarrow[0,1]\) as an approximation of similarity weight between two points in $\mathbb{R}^{d}$, as $$\Phi(\mathbf{x}, \mathbf{y})=\left(1+a\left(\|\mathbf{x}-\mathbf{y}\|_{2}^{2}\right)^{b}\right)^{-1}$$
+where $a$ and $b$ are chosen by non-linear least squares fitting such that $\Phi(\mathbf{x}, \mathbf{y})= \Psi(\mathbf{x}, \mathbf{y})$, where
+$$ \Psi(\mathbf{x}, \mathbf{y})\left\{\begin{array}{ll}1 & \text { if }\|\mathbf{x}-\mathbf{y}\|_{2} \leq \text { min-dist } \\ \exp \left(-\left(\|\mathbf{x}-\mathbf{y}\|_{2}-\text { min-dist }\right)\right) & \text { otherwise }\end{array}\right.$$
+	
+\section{Selection of Techniques}
+The previous sections gave a brief introduction to UMAP and t-SNE. Here, we will offer a, hopefully, a guide for which methods to use given a certain types of data points with some constrains. For instance, if one is to visualize a given high dimensional data points such that the dimensions is reduced down to, say, 3, with global structure preserved, which of the two one shall pick. In this section, a comparison of the two methods and suggestions for selection of methods will be presented.  
+
+
+
+\section{Conclusion}
+
+
+%
+% ---- Bibliography ----
+%
+% BibTeX users should specify bibliography style 'splncs04'.
+% References will then be sorted and formatted in the correct style.
+%
+\bibliographystyle{splncs04}
+\bibliography{biblio}
+%
+\end{document}

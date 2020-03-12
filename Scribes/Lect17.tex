@@ -1,0 +1,130 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{algorithm}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+\usepackage{algorithm}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+\usepackage[noend]{algpseudocode}
+\usepackage{tikz}
+\usepackage{forest}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage[noend]{algpseudocode}
+\usepackage{wasysym}
+\Scribe{Kriangsak Thuiprakhon}
+\Lecturer{Kanat Tangwongsan}
+\LectureNumber{13}
+\usepackage{tikz}
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+\LectureDate{DATE}
+\LectureTitle{Gradient Descent and Stochastic Gradient Descent }
+\lstset{style=mystyle}
+\begin{document}
+\MakeScribeTop
+\section{Gradient Descent}
+\subsection{Remarks}
+\begin{itemize}
+\item[(i)] What the heck is $ \eta \nabla f(x)$ ?
+The second-order Taylor's expansion :
+$$
+f(y) \approx f(x) + f'(x)\cdot (\vec{y}-\vec{x}) + \frac{1}{2} f''(x)(\vec{y}-\vec{x})^2 
+$$  
+In $ d \geq 2$,
+$$
+f(\vec{y}) \approx f(\vec{x} + \nabla f(\bar{x})^T(\vec{y}-\vec{x}) +\frac{1}{2}(\vec{y}-\vec{x})^T \nabla^2f(x)(\vec{y}-\vec{x}) 
+$$
+where $\nabla^2f(x)$ is Hessian $Hf(k)$. This potentially complex $Hf$ can be approximated by an extremely simple term $\frac{1}{\eta}I$, where $I$ is the identity matrix. That is,
+$$
+\tilde{f}(\vec{y}) = f(\vec{x}) + \nabla f(\bar{x})^T(\vec{y}-\vec{x}) +\frac{1}{2\eta}||\vec{y}-\vec{x}||_2^2
+$$ 
+This turns out to be convex for some complex reasons. The question now is how to minimize $\tilde{f}(\vec{y}) $?. To do this, by convexity, set$ \nabla{y} \tilde{f}(\vec{y})  =0$. Then,
+$$
+ \nabla{y} \tilde{f}(\vec{y})  =  \nabla f(\vec{x}) + \frac{1}{\eta}(\vec{y}-\vec{x}) =0 \Longleftrightarrow \vec{y} -\vec{x} = -\frac{1}{\eta} \nabla f(\vec{x}) 
+$$ 
+This technique is called \textit{\textbf{minimization of local approximations}} where $f +\nabla$ is local approximation and $\frac{1}{2\eta}||\vec{y}-\vec{x}||$ is proximity. 
+\item[(ii)] In practice,  how to  choose $\eta_t$? Fixing $\eta_t$ throughout an approximation is not always a good idea. Therefore, a popular heuristic is to have a decaying $\eta_t$
+\item[(iii)] For further refinement, for instance,  the function $f$ needs to be \textit{strongly} convex (i.e.,  the function must "bend"). 
+\end{itemize}
+\subsection{Special Case Popular in Machine Learning/ Deep Learning}
+\begin{itemize}
+\item minimize a loss function $f(\vec{\theta}) = \frac{1}{n} \sum_{i=1}^{n} f_i(\vec{\theta})$
+\item Example: In linear regression with $l_2$ loss. Data points $(\vec{x_{i,j}},y_i)$ where $y_i$ is a label. The loss function is given by, 
+$$
+\text{loss} =\sum_{i=1}^{n} (y_i - \vec{x_i}^T \vec{\theta})^2
+$$
+Minimizing this loss function is equivalent to minimizing 
+$$
+f(\vec{\theta})= \frac{1}{n}\sum_{i=1}^{n} (y_i - \vec{x_i}^T \vec{\theta})^2
+$$ 
+\item Notice that running GD takes $O(nd)$ per iteration. This is too costly, there shall be a way to reduce this.
+\item Fun fact: $\mathbb{E}_i [f_i(\vec{\theta)}] = f_i(\vec{\theta)}$ and $\nabla_{\theta} f_i(\vec{\theta)} = \frac{1}{n}\sum_{i=1}^{n} f_i(\vec{\theta)}$
+This fact gives rise to Stochastic Gradient Descent (SGD) whereby space requirement and time complexity per iteration is reduced. 
+\end{itemize}
+\section{Stochastic Gradient Descent}
+We can express the algorithm as the following.
+\begin{algorithm}[H]
+	\caption{Stochastic Gradient Descent Algorithm}
+	\begin{algorithmic}
+		\Function{GradientDescent}{$f, x_0$}
+		\For{$t = 1, 2, \ldots, T-1$}
+			\State {$x_t \gets x_{t-1} - \eta_t \nabla \mathbb{E} f_i(x_{t-1})$}
+		\EndFor
+		\State \Return $\hat{x} = \frac{1}{T} \sum_{t} x_t$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+SGD modifies this so that. 
+\begin{algorithm}[H]
+	\caption{Stochastic Gradient Descent Algorithm}
+	\begin{algorithmic}
+		\Function{GradientDescent}{$f, x_0$}
+		\For{$t = 1, 2, \ldots, T-1$}
+			\State choose  an $i$ at random or round robin.
+			\State {$x_t \gets x_{t-1} - \eta_t \nabla f_i(x_{t-1})$}
+		\EndFor
+		\State \Return $\hat{x} = \frac{1}{T} \sum_{t} x_t$
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+\begin{theorem}
+	\label{gdthm}
+	Let $x^*$ be the minimiser of $f : \real^n \to \real$. If $f$ is convex and differentiable and satisfies $\|\nabla f_i(x)\|_2 \leq G$ for all $x\in\real^n$, then setting $T = \frac{G^2}{\epsilon^2}\|x_0 - x^*\|_2^2$ and $\eta_t = \eta = \frac{\|x_0 - x^*\|}{G\sqrt{T}}$ gives $\mathbb{E}f(\hat{x}) \leq f(x^*) + \epsilon$. 
+\end{theorem}
+This is the same old proof. The interesting bits are: 
+\begin{claim}
+Let $\Phi_t = \frac{1}{2 \eta} \|x_t -x^*\|_2^2$.
+ Then, $ \mathbb{E} \bigg [f(\vec{x_t}  + (\Phi_{t+1} - \Phi_t) \bigg ] \leq f(x^*) + \frac{1}{2} \eta G^2 $
+\end{claim}
+Condition $\mathbb{E}$ on the history until iteration that produced $\vec{x_t}$
+\begin{align*}
+\mathbb{E} [ f( \vec{x_t})  + \Phi_{t+1} - \Phi_t ] &\leq \mathbb{E} \bigg[f(\vec{x_t}) + \frac{1}{2} \eta  \bigg (|| \underbrace{ \vec{x_{t+1}} - \vec{x_t}}_{ \Delta x } ||_2^2 + 2\Delta x^T(\vec{x_t} -x^*) \bigg ) \bigg ]\\
+&\leq \mathbb{E}[f(\vec{x_t}] + \frac{1}{2} \eta  G^2 - \nabla f(\vec{x})^T(\vec{x_t} -x^*) \\
+&= \frac{1}{2} \eta  G^2 + \underbrace{f(\vec{x_t}) +\nabla f(\vec{x})^T(x^* +\vec{x_t} }_{\leq f(x^*))}  
+\end{align*}
+Note: 
+\begin{align*}
+\Delta x &= -\eta f_i(\vec{x_t})\\
+&\Rightarrow || \Delta x||_2^2 \leq \eta^2 G^2\\
+&\Rightarrow \mathbb{E}_i[\Delta x] = -\eta \mathbb{E}[\Delta_{f_i}(\vec{ x_t}] = -\eta	\Delta f(\vec{x_t})
+\end{align*}
+Other tricks used to implement SGD: 
+\begin{itemize}
+\item $\mathbb{E}_i [f_i(\vec{x} = \f_i(x) $ but potentially \underline{not} concentrated. Therefore, This potentially does not converge as fast as performing the full gradient. 
+\item To improve further, Pick a "batch" of indices. Say, $B \leq [n]$ and use an update rule such that
+$$
+\vec{x_t} = \vec{x_{t-1}} - \frac{\eta}{|B|} \sum_{i \in B} \nabla f_i(\vec{x_{t-1}}).
+$$
+Note: $ \mathbb{E}\bigg[ \frac{1}{|B|}\cdot \sum_{i \in B} \nabla f_i(\vec{x})\bigg] = \frac{1}{|B|}\sum_{i \in B}  \nabla f_i(\vec{x} )=\nabla f(\vec{x} ) $
+\end{itemize}
+By doing this, minibatch sampling, the variance is reduced by about $\frac{1}{|B|}$ and the cost per iteration shrinks down to $O(|B|\cdot d)$. This is considered a good compromise in practice since the convergence rate, (i.e.,$f(\hat{x}) -f(x^*)$), is  $O\bigg(\sqrt{\frac{|B|}{T} + \frac{|B|}{T}} \bigg)$as opposed to $O\big(\frac{1}{T} \big)$ in a normal GD algorithm.
+
+\end{document}

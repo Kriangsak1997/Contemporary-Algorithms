@@ -1,0 +1,104 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{algorithm}
+\Scribe{Kriangsak Thuiprakhon}
+\Lecturer{Kanat Tangwongsan}
+\LectureNumber{13}
+\usepackage{tikz}
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt        
+\LectureDate{DATE}
+\LectureTitle{Online Linear Programming and Multiplicative Algo I }
+\lstset{style=mystyle}
+\begin{document}
+\MakeScribeTop
+\section{Event Prediction}
+Let's say we want to predict whether or not an even $A$ will happen? In doing so, we will go about asking \textit{\textbf{N}}  number of experts to make \textit{\textbf{T}}  rounds of predictions., where:\\
+
+For $t= 1, \cdots, T$ \\
+\begin{enumerate}
+\item Each expert $i \in [N] $ advises: YES/NO
+\item Aggregator predicts the outcome: YES/NO
+\item An adversary (think of it as God who knows all an aggregtor would redict) will determine for an whether an event will occur: YES/NO
+\item Observe the outcome 
+\end{enumerate}
+In any predictions made, there can be the case when mistakes are made by those $N$ experts. Here, we will define what mistakes means\\
+$$\textbf{\textit{Mistake}} := \text{ predicted outcome } != \text{ actual outcome} $$
+
+\textbf{\textsc{Goal}}: our goal is to minimize the number of mistakes made in one prediction.
+\begin{theorem}
+If there is a \textit{\textbf{perfect expert}}, then, there is an aggregator that makes at most $log_{2}n$ mistakes
+\end{theorem}
+\begin{proof}
+Think of this as how many mistakes have to made until the perfect expert is found.\\
+\textbf{Observation } If a mistake has been made, at least $N/2$ experts were wrong. Therefore, there will be at most  $log_{2}n$ mistakes made until the perfect expert is found.
+\end{proof}
+\begin{theorem}
+If the best expert makes $\textit{\textbf{m}}$ mistakes, then the aggregator makes mistakes in a total of$$O(m(log_{2}N) + log_{2}N)$$ 
+\end{theorem}
+\clearpage
+\begin{proof}
+Consider
+\begin{itemize}
+\item Every run,  imperfect experts make  $\leq log_{2}N +1$ mistakes and the perfect expert makes $\geq 1$ mistake(s)
+\item There can be at most  \textbf{\textit{m}} runs: in the \textbf{\textit{m+1}} run, the best expert makes no more mistake.
+\item By \textit{\textbf{Theorem 1.1}} all imperfect experts make $\leq log_{2}N$
+\end{itemize}
+Therefore, the total number of mistakes is
+$O(m(log_{2}N +1) log_{2}N) $\\
+\end{proof}
+
+\textbf{\textit{Remark: }} notice that the above bound is multiplicative of  \textbf{\textit{m}}, we will try to do better in trying to reduce it into an additive bound.
+\section{Weighted Majority Algorithm (WMA)}
+To continue with the expert example, we will try to  come up with a few algorithms that will improve upon the bound from \textbf{\textit{Theorem 1.2}}\\
+
+Initially, we define the weight function of the \textit{zero-th} round to be $w_i^{(0)} =1$
+$$
+w_i^{(t+1)} = \begin{cases}
+w_i^{(t)} &\textmd{ if i were correct} \\
+\frac{1}{1}w_i^{(t)} & \text{ if i were wrong}
+\end{cases}
+$$
+The prediction will be made using WMA,
+Let's us define the potential function 
+$$\phi^{(t)} = \sum_{i}^{T}w_i^{(t)} $$
+Notice that:
+\begin{itemize}
+\item $\phi^{(0)}=n$
+\item $\phi^{(t+1)} \leq \phi^{(t)}$
+\end{itemize}
+Let's say a mistake was made at step \textbf{\textit{t}}, then
+\begin{align*}
+\phi^{(t+1)} & = \sum_{i}^{T}w_i^{(t+1)} \\
+&= \sum_{i: correct}^{T}w_i^{(t+1)} +\sum_{i:wrong}^{T}w_i^{(t+1)}\\
+&= \sum_{i: correct}^{T}w_i^{(t)} + \frac{1}{2}\sum_{i: wrong}^{T}w_i^{(t)} \\
+&= \sum_{i: correct}^{T}w_i^{(t+1)}  +(1- \frac{1}{2})\sum_{i: wrong}^{T}w_i^{(t)} -{*}\\
+&= \phi^{(t)}  -  \frac{1}{2}\sum_{i: wrong}^{T}w_i^{(t)} \\
+&\leq(1-\frac{1}{4}) \phi^{(t)} \\
+&= \frac{1}{4} \phi^{(t)}
+\end{align*}
+From \textsc{*}, let's zoom in into what happens at this step. In fact, we can express the potential function as follows:
+\begin{align*}
+\phi^{(t)} &= \sum_{i}^{T}w_i^{(t)} \\
+&=\sum_{i: correct}^{T}w_i^{(t)} +\sum_{i:wrong}^{T}w_i^{(t)}\\
+\end{align*}
+If we expand \textit{*},
+\begin{align*}
+* & = \underbrace{ \sum_{i: correct}^{T}w_i^{(t+1)}  + \sum_{i: wrong}^{T}w_i^{(t)} }_{\phi^{(t)}}  - \frac{1}{2} \sum_{i: wrong}^{T}w_i^{(t)}\\
+&= \phi^{(t)} - \frac{1}{2} \underbrace{\sum_{i: wrong}^{T}w_i^{(t)}}_{**}\\
+\textmd{where } {**} \leq \frac{1}{2}\phi^{(t)}
+\end{align*}
+Now, enough with unattractive summations, we will analyze what would happen to the total number of makes (denoted by \textbf{\textit{M}}) the aggregator makes  if (perfect) expert$\textbf{\textit{i}}$ makes $ \textbf{\textit{$m_i$ }} $mistakes:
+$$  \left ( \frac{1}{2} \right) ^m = w_i^{(T)}  \leq  \phi^{(T+1)} \leq \left (\frac{3}{4} \right )^M \phi^{(0)} -(***)$$
+To make it a little bit easier to solve, we till take  $log_2(***)$  
+\begin{align*}
+-m_i &\leq Mlog_2\frac{3}{4} + log_2N\\
+m_i &\geq Mlog_2\frac{4}{3} - log_2N\\
+M &\leq \frac{1}{log_2\frac{4}{3}} (m_i +  log_2N)\\
+\textmd{if you consult WolframAlpha, then}\\
+M & \leq 2.41 (m_i +  log_2N)\\
+\end{align*}
+\end{document}

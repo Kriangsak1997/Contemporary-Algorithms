@@ -1,0 +1,102 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+
+\Scribe{Kriangsak THUIPRAKHON}
+\Lecturer{Kanat Tangwongsan}
+\LectureNumber{3}
+\LectureDate{1/13/2020}
+\LectureTitle{Nearest Neighbors I}
+
+\lstset{style=mystyle}
+
+\begin{document}
+	\MakeScribeTop
+
+%#############################################################
+%#############################################################
+%#############################################################
+%#############################################################
+
+\section{Example: Depth of Treap}
+
+ \parindent In the previous lecture, we have proven that the height of a treap to be fairly balanced with the expected depth of $\log_{2}{n}$. Here is another derivation of the height of a treap using chernoff hoeffding bounds. 
+ 
+% Here's a citation~\cite{Kar84a}.
+\setlength{\parindent}{1cm} Let $A_{i,j}$ be an indicator random variable where, $$A_{i,j} = \begin{cases}
+                   1 &\text{ if \textit{j} is an ancestor of \textit{i}} \\
+                   0 &\text{ otherwise}
+               \end{cases}
+      $$
+Note that for a fix i, all $A_{i,j}$'s are independent, meaning Chernoff-Hoeffding bounds apply.\\
+In this case, the depth of the treap is,
+\newline \begin{align*}
+    \textmd{depth}(X_{i})  &= \sum_{j=1}^{n} A_{1,j}\\
+                  &= 1 + \underbrace{\sum_{j=1}^{i-1}A_{i,j}}_{L} +\underbrace{\sum_{j=i+1}^{n}A_{i,j}}_{R}\\
+\end{align*}
+In the previous lecture, it was shown that the height of a treap is about $\log_{2}{n}$ with high probability. This mean we want to bound something in the following form\\
+Claim: $$Pr[\text{Depth} \leq  k\ln{n} \ ] = 1-\underbrace{Pr[ \text{Depth} >  k\ln{n} \ ]}_{*}\geq 1- \frac{1}{n^{\alpha}}$$\\
+where the term  $\frac{1}{n^{\alpha}}$ is the error probability mentioned in the previous lecture. 
+The goal now is to bound $*$ using union bound.
+$$Pr[ \text{ Depth} >  k\ln{n} \ ] \leq Pr[ \text{ left} >  \frac{k}{2}\ln{n} \ ] + Pr[ \text{ right} >  \frac{k}{2}\ln{n} \ ]$$
+Applying the powerful Chernoff-Hoeffding bounds, we then have
+\begin{align*}
+   Pr[ \text{ left} >  (1 + \frac{k}{2}-1)\ln{n} \ ] &\leq \exp\{-\frac{(\frac{k}{2}-1)^2}{3} \times \underbrace{2\ln{n}\}}_{*}\\
+   &\leq \frac{1}{n^\alpha} \quad \text{where } \alpha = \frac{(\frac{k}{2}-1)^2}{3}\\
+\end{align*}
+Note that * is bounded by the deepest height of a treap. The same taken to the second term, we will have
+$$ \mathbb{P}[\textmd{depth} \leq k\ln{n} ] \geq 1-\frac{1}{n^\alpha} $$
+
+\section{The Power of Grid}
+     In this last bit of the lecture, we will explore the a simple idea whereby the space is sub-divided into grid cells. By doing so, it turns out to be extremely powerful.
+\subsection{Closest Pair in 2D}
+ Given the input as a set \textbf{\textit{P}} of \textit{n} points in 2D, and the goal is to compute the closest pair of points. There are a few ways to solve such a problem. One may try to go about writing two for-loops but of course the algorithm delivers with $O(n^2)$. Another approach to this problem is to solve it using divide and conquer yeilding $O(nlogn)$. 
+ However, there is a faster, and simpler, algorithm that delivers the closest pair in $O(n)$, with allowance of additional operations. \\
+\subsection{Verification}
+ let $CP(Q) $ denote  the distance between the closest pair of points of $Q$, where Q is a set of points.  \\
+ if someone claims CP(Q) is \textit{r}. How do we verify this quickly?\\
+ We can in fact do this in linear time:
+ \begin{itemize}
+     \item Build a grid of size \textit{r} by \textit{r}
+     \item Dump all the points into the cells by bucketing/hashing. In fact, \textbf{Q(x,y)} goes to the coordinate ($\lfloor{x/r}\rfloor$,$\lfloor{y/r}\rfloor)$.
+     \item If any cell has more than 9 points, $CP(Q) < r$. Note that if the cell is sub-divided into a 3-by-3 sub-cells, Pigeon hole says one of them has at least two points, but then this sub-cell's diameter is strictly less than r
+     \item For each operation, we will look at at most 81 points. That is, we will be looking at the neighboring 8 points for all sub-cells containing at most 9 points. 
+     \item Hence, linear time!
+ \end{itemize}
+ \subsection{A Closest Pair Algorithm}
+ \begin{enumerate}
+     \item Permute the given input set \textbf{\textit{P}} of points randomly, say  \textbf{\textit{P}} =  $\langle p_{1},p_{2},...,p_{n}\rangle $ is a permutation of the given input.
+     \item start with $r_{2} = || p_{1} - p_{2} ||_{2}$. In this case, the above grid will be sub-divided into an  r-by-r grid where $r=r_{2}$
+     \item $ \forall i \in \{3,4,5, ... , n\}, p_{i} \textmd{ will be added} $ . When added, there algotithm shall perform:
+     \begin{itemize}
+         \item Check whether $p_{i}$ forms a new closest pair.This requires the checking of $p_{i}$ to its original and other 8 neighboring cells, all of which contain at most 9 points. 
+         \item If $p_{i}$ becomes the new closest pair, rebuild the grid using the new closest pair distance.
+         \item Continue with this grid otherwise.
+     \end{itemize}
+ \end{enumerate}
+ 
+Let $\X $be the indicator random variable, 
+$$X_{i} =\begin{cases}
+                   1 &\text{ if $p_{i}$ forms a new closest pair }\\
+                   0 &\text{ otherwise}
+               \end{cases}
+               $$
+The total cost is then given by the resurrance,
+$$\T(n) = \O(1) + \sum_{i=3}^n (\O(1) + X_{i}\cdot i)$$
+Claim: $\mathbb{P}[\X_{i}=1] \leq \frac{2}{i}$, where $p_i$ is randomly drawn from the permuted input. The probability of a point randomly drawn forms the new closest pair is given by two cases:
+\begin{itemize}
+    \item The closest pair is unique and they are x--y. Then either one of them will be picked as $p_{i}$ with $2/i$ probability. 
+    \item The closest pair is not unique, then the probability that $p_{i}$ becomes the \textbf{\textit{new}} closest pair is 0.  
+\end{itemize}
+Hence, the expected running time is then,
+\begin{align*}
+  \mathbb{E}[\T(n)] &\leq   \O(1) + n + \underbrace{\sum_{i=3}^n[\X_{i}\cdot i]}_{2/i}\\
+                    & = \O(n) + \sum_{i=3}^n[\frac{2}{i}\cdot i]\\
+                    &= \O(n)
+\end{align*}
+
+                    
+\end{document}
