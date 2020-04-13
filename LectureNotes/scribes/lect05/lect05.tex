@@ -1,0 +1,133 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+
+\graphicspath{ {./images/} }
+
+\CourseName{Comtemporary Algorithms T.II/2019-20}
+\Scribe{Suchanun P.\& Suchanuch P.}
+\Lecturer{Dr. Kanat Tangwongsan}
+\LectureNumber{5}
+\LectureDate{22 January 2020}
+\LectureTitle{Approximate Nearest Neighbor (ANN)}
+
+\lstset{style=mystyle}
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{label = Step \arabic*:}
+
+\begin{document}
+\MakeScribeTop
+
+\section{Approximate Nearest Neighbor (ANN)}
+
+
+Exact NN is hard (and often not necessary) so an approzimation of NN is good enough.\\
+
+\textbf{Problem (ANN)}: Given a collection of $D$ points, $ANN(q, r, c)$ is defined as:
+\begin{itemize}
+  \item If $\exists x \in D$ such that $d(q, x) \leq r$, report any $y \in D$ such that $d(q, y) \leq cr.$
+  \item If $\nexists x \in D$ such that $d(q, r) \leq r,$ report fail.
+  \item Otherwise, either report a point $\leq cr,$ or report fail.
+\end{itemize}
+
+Idea: bin points -- points close together are in the same bin while points far apart are in different bins.
+
+\newcommand{\expected}{\mathbb{E}}
+\newcommand{\probab}{\mathbb{P}}
+
+\subsection{Locality Sensitive Hashing (LSH)}
+
+\textbf{Def: (LSH)} For parameter $c>1$, probability values $p_1 > p_2$ and distance $r \geq 0$, a hash family $H$ is said to be $(r, cr, p_1, p_2)$ - sensitive if $\forall q, x, y$:
+\begin{itemize}
+  \item If $d(x, q) < r, \probab [h(x)=h(q)] \geq p_1$
+  \item  If $d(y, q) > cr, \probab [h(y)=h(q)] \leq p_2$
+\end{itemize}
+where $h \sim H$ at random.\\ \\
+\textbf{Ex: (Hamming)} For $x,y \in  \{ 0, 1\}^k, d(x, y) \left\lVert x - y \right\rVert $
+$$H = \Big\{ h_i\  |\  h_i(\vec{x}) \textrm{\ returns the i}^{th} \textrm{\ bit of\ } \vec{x}\ \Big\}$$
+Easy to see: $\probab_{h \sim H}[h(\vec{x}) = h(\vec{y})] = 1 - \frac{d(\vec{x}, \vec{y})}{k}$
+\begin{itemize}
+\item If $d(x, q) < r, \probab[h(\vec{x}) = h(\vec{q})] \geq 1 - \frac{r}{k} = p_1$
+\item If $d(y, q) > cr, \probab[h(\vec{y}) = h(\vec{q})] \geq 1 - \frac{cr}{k} = p_2$
+\end{itemize}
+\clearpage
+Ideas:
+\begin{itemize}
+\item AND - drive $p_2 \rightarrow 0, p_1 \rightarrow$ somewhere reasonable   
+\item OR - drive $p_1 \rightarrow 1, p_2 \rightarrow$ somewhere reasonable
+\item Parallel copies: run the algorithm many times, only require it to succeed once, e.g. if $p_1 = \frac{1}{3},$ run $2\ln n$ times, $\probab$ [succeed once] = $1 - p^{2\ln n} = 1 -\frac{1}{n^2}$
+\end{itemize}
+Given a hash family $H$,
+$$h_1, h_2, ..., h_k \sim H$$
+where $h$ is $c, cr, p_1, p_2)$ -  sensitive and $h: \mathbb{P} \rightarrow \mathbb{U}$ (e.g. $\mathbb{R} \rightarrow \{0, 1, 2, 3, ... \})$
+
+\subsubsection{AND}
+\textbf{AND} creates a new hash family $H'$
+$$H' = H \times H \times ... \times H$$
+\textbf{Construction}: 
+$g \in H', g(x)= \langle h_1(x), h_2(x), ..., h_K(x) \rangle$ that is $g: \mathbb{P} \rightarrow \mathbb{U}^K$
+$$g(x) = g(y) \iff \forall j, h_j(x) = h_j(y)$$
+Thus, if $d(x, q) < r,$
+$$\probab [g(x)=g(q)] = \prod \probab [h_j(x)=h_j(q)] \geq p_1^K$$
+If $d(y, q) > cr,$
+$$\probab [g(y)=g(q)] = \prod \probab [h_j(y)=h_j(q)] \leq p_2^K$$
+
+\subsubsection{OR}
+\textbf{Construction}: Draw $h_1(x), h_2(x), ..., h_L(x) \sim H$ For each point $x$, send $x$ to binds $h_1(x), h_2(x), ..., h_L(x)$. \\
+Thus, if $d(x, q) < r,$
+\begin{eqnarray*}
+\mathbb{P}[x, q \textrm{hashed to the same bin\ }] &=& 1 - \mathbb{P}[x, q \textrm{\ hashed to none of the same bins}]\\
+&\geq & 1 - (1-p_1)^L
+\end{eqnarray*}
+If $d(y,q) > rc$,
+\begin{eqnarray*}
+\mathbb{P}[y, q \textrm{hashed to the same bin\ }] &=& 1 - \mathbb{P}[y, q \textrm{\ hashed to none of the same bins}]\\
+&\leq & 1 - (1-p_2)^L
+\end{eqnarray*}
+
+\subsubsection{AND-OR}
+$$H \xrightarrow{\text{AND}} H'  \xrightarrow{\text{OR}} h_1', h_2', h_3', ..., h_L'$$
+where for $h' \sim H', h' = \langle h_1, h_2, ..., h_K \rangle$
+
+\subsubsection{Choosing K and L}
+\textbf{Goal}: $\mathbb{E}$[\# bad collisions] = 1\\ \\
+If $d(y, q) \geq cr,$ K-ANDs
+$$ \probab \textrm{[\# collisions]} \leq p_2^K = e^{K\ln p_2}=\frac{1}{n}$$
+Use $K = \frac{\ln 1/n}{\ln p_2}$, $$\mathbb{E}\textrm{[\# collisions]} \leq \frac{1}{n}n = 1$$
+If $d(x, y)<r$, $$\probab \textrm{[x, q collided]} \geq p_1^K = e^{k\ln p_1} = \big( e^{\ln \frac{1}{n}} \big) ^ {\frac{\ln p_1}{\ln p_2}} = \frac{1}{n^\rho} \textrm{\ \ \ \ where } \rho = \frac{\ln p_1}{\ln p_2}$$
+Use $L = n^\rho$,
+$$\mathbb{E} \textrm{[\# collisions]} = L$$
+
+\textbf{Querying}: Have a query point $q$. Suppose we have $g_1, g_2, ..., g_L \sim H'$. Hash the point $q: b_1 = g_1(q), b_2 = g_2(q), ..., b_L = g_L(q)$. Look at bins $b_1, b_2, ..., b_L$.
+\begin{itemize}
+  \item If found a point $\leq cr$ apart, report it and quit.
+  \item If looked at $4L$ point already, report None and quit.
+  \item If ran out of points in bin, move to nexti bin.
+\end{itemize}
+\textbf{Probability of success:}
+
+Can fail if 
+\begin{itemize}
+  \item Look at $4L$ points already and still fail, $\probab\textrm{[bad]} < \frac{1}{4}$ 
+  \item $q$ doesn't get put to another bin with a point close to it $\probab\textrm{[this happends]} = \left( 1 - \frac{1}{n^\rho} \right)^{n\rho} \leq \frac{1}{e}$
+\end{itemize}
+So $\probab\textrm{[success]} = 1 - \frac{1}{4} - \frac{1}{e} \geq \frac{1}{3}$\\
+To increase the chance of success, report many times: report $m$ times $\probab\textrm{[fail]} = \left( 1-\frac{1}{3}\right)^m$\\
+If $m = (3\textrm{lg}_{\frac{2}{3}} n)^{n\rho}$ the $\probab\textrm{[fail]}=\frac{1}{n^3}$ WHP. This reports in $O(n^\rho\textrm{lg}n)$ time.
+
+
+
+
+
+
+
+
+\end{document}

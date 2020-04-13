@@ -1,0 +1,206 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+
+\graphicspath{ {./images/} }
+
+\CourseName{Comtemporary Algorithms T.II/2019-20}
+\Scribe{Kriangsak T. \& Apivich H.}
+\Lecturer{Dr. Kanat Tangwongsan}
+\LectureNumber{3}
+\LectureDate{13 January 2020}
+\LectureTitle{Nearest Neighbours I}
+
+\lstset{style=mystyle}
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{label = Step \arabic*:}
+
+\begin{document}
+\MakeScribeTop
+
+In the next couple of lectures, we will discuss algorithms for the Nearest Neighbours problem, commonly used in data science and those fancy stuff. However, we first need to discuss some statistics which will be useful in the future lectures. 
+
+\section{Concentration of Measure}
+
+To explain the basic idea of concentration of measure, we can start with an example of a fair coin, where you may get heads or tails with an equal probability.
+
+If you toss a fair coin once, it is very hard to determine how many times you will get a heads. In other words, the results is \textit{unpredictable}.
+
+However, if you toss a fair coin 1000 times, you may be able to predict that you will get around 500 heads. The outcome is now more \textit{predictable}.
+
+As you toss more coins, the outcome of the event will be more concentrated around the expected value. In this case, the probability distribution becomes ``sharper" and you can be more sure about your predictions. 
+
+Some may have seen this phenomena be described as the ``Law of Large Numbers" or as the ``Central Limit Theorem". However, this only applies in the limit of when the number of events approaches infinity. We would like to be more concrete.
+
+The question we would like to answer is: \textit{Given a random variable $X$ with mean $\mu = \mathbb{E}[X]$, what is the probability that $X$ deviates far from $\mu$?}
+
+\newcommand{\expected}{\mathbb{E}}
+\newcommand{\probab}{\mathbb{P}}
+
+\subsection{Markov's Inequality}
+\begin{theorem}[Markov's Inequality] If $X$ is a non-negative random variable, then, for all $\lambda > 0$, $$\probab [X > \lambda] \leq \frac{\expected[X]}{\lambda}.$$
+\end{theorem}
+\begin{proof} Since we assume that $X > 0$,
+	\begin{align*}
+		\expected[X] &= \int_{0}^{\infty} x p(x) dx \\
+		&=  \int_{0}^{\lambda} x p(x) dx +  \int_{\lambda}^{\infty} x p(x) dx &\textmd{by splitting the integral} \\
+		&\geq \int_{\lambda}^{\infty} x p(x) dx \\
+		&\geq \int_{\lambda}^{\infty} \lambda p(x) dx &\textmd{since under this integral limit $x \geq \lambda$}\\
+		&= \lambda \int_{\lambda}^{\infty} p(x) dx &\textmd{since $\lambda$ is a constant}\\
+		&= \lambda \cdot \probab[X > \lambda]
+	\end{align*}
+	then one can rearrange the above to arrive at $\probab [X > \lambda] \leq \expected[X] / \lambda$.
+\end{proof}
+
+Note that Markov's Inequality is a more general expression, as it makes little assumption on what the actual probability distribution of $X$ actually looks like. As a result, the bound obtained is not as tight as what we will get from Chernoff-Hoeffding Bounds in the next section. 
+
+Another result that we can prove from Markov's Inequality is \textit{Chebychev's Inequality}. Suppose we define another random variable $Y = (x - \mu)^2$ where $\mu = \expected[X]$. We can see that $\expected[Y] = \textmd{Var}[X]$. Since $Y \geq 0$, we can use Markov's Inequality on it. Then, we can see that for some $t > 0$,
+\begin{align*}
+	\probab[Y > t^2] &< \frac{\expected[Y]}{t^2} &&\textmd{by Markov's Inequality} \\
+	\probab[(X-\mu)^2 > t^2] &< \frac{\textmd{Var}[X]}{t^2} && \\
+	\probab[|X-\mu| > t] &< \frac{\textmd{Var}[X]}{t^2} &&\textmd{since $(X-\mu)^2 > t^2 \iff |X-\mu| > t$} \\
+\end{align*}
+where the last line is the Chebychev's Inequality. Again, for this result, we have made no assumption about what the probability distribution of $X$ is like (although we do need to be able to find the variance of $X$). 
+
+\subsection{Chernoff-Hoeffding Bounds}
+\begin{theorem}[Chernoff-Hoeffding Bounds] Let $X = \sum_{i=1}^{n} X_i$ where each $X_i$'s are random variables which are all independently distributed in $[0, 1]$. Let $\mu = \expected[X]$. Then,
+	\begin{enumerate}
+		\item For all $t > 0$, $\probab[X > \mu + t]$ and $\probab[X < \mu - t]$ is at most $\exp(-2t^2 / n)$,
+		\item For all $\lambda > 0$, $$ \probab[X > (1+\lambda)\mu] \leq \exp \biggl\{- \frac{\lambda^2 \mu}{3} \biggr\}, $$ and $$ \probab[X < (1-\lambda)\mu] \leq \exp \biggl\{- \frac{\lambda^2 \mu}{2} \biggr\}. $$ 
+	\end{enumerate}
+\end{theorem}
+The theorem will be stated without proof. However, in order to prove this result, a trick which will be needed is something called a \textit{moment-generating function} of $X$. This is defined to be $\expected[e^{tX}]$. When this is expanded out, we can see that
+$$\expected[e^{tX}] = \expected \bigg[ \sum_{k \geq 0} \frac{(tX)^k}{k!}\bigg] = \sum_{k \geq 0} \frac{t^k}{k!} \expected[X^k]$$
+which is a function that contains $\expected[X^k]$ for all $k \geq 0$. These terms are the moments of a random variable. The proof of the Chernoff-Hoeffding bound will begin by saying that $\probab[X > \lambda] = \probab[e^{tX} > e^{t\lambda}] < e^{-t\lambda} \probab[e^{tX}]$ followed by a lot of maths which will be skipped. 
+
+\subsection{Examples Using Chernoff-Hoeffding Bounds}
+
+\subsubsection{Skip Lists}
+
+The idea of skip lists has been discussed in a previous lecture. Here, we will prove that searching for a key in a skip-list of size $n$ takes $O(\lg n)$ time with high probability using Chernoff-Hoeffding Bounds. 
+
+\begin{lemma} Searching for a key in a skip-list of size $n$ takes $O(\lg n)$ time w.h.p. 
+\end{lemma}
+\begin{proof} 
+	Let $Z$ be the number of steps needed to take to reach a certain key in a skip-list. We can see that there are two types of steps in the search traversal, either you move across (in the same level of the skip-list), or you move down (to a lower level of the skip-list). Let the number of steps moving across be $H$ and the number of steps moving down be $V$. By our definition, $Z = H + V$. 
+	
+	We want to know what is the probability that $Z$ is less than $c \lg n$, for some sufficiently large $c$. In mathematical notation, we want to find out what is $\probab[Z \leq c \lg n]$. This is the probability of some ``good" event occurring (since it is the event where we don't take too many steps in the traversal). 
+	
+	We can see that $\probab[Z \leq c \lg n]$ is actually equal to $1 - \probab[Z > c \lg n]$. The term $\probab[Z > c \lg n]$ can be approximated. We will use the fact that $$\probab[B] = \probab[B|A]\probab[A] + \probab[B|\bar{A}]\probab[\bar{A}]$$ to rewrite our expression as
+	$$\probab[Z > c \lg n] = \probab[Z > c \lg n | V \geq k] \probab[V\geq k] + \probab[Z > c \lg n | V < k] \probab[V< k].$$
+	Since the probability of all events must be less than one, we can see that $\probab[Z > c \lg n | V \geq k] \leq 1$ and $\probab[V< k] \leq 1$. We can reduce the expression above further to
+	$$\probab[Z > c \lg n] \leq \probab[V\geq k] + \probab[Z > c \lg n | V < k].$$
+	From a previous lecture, we have shown that $\probab[V\geq k] \leq 1/n^{k-1}$. This leaves the second expression. If we have $V < k$, then $Z > c\lg n$ implies that $H = Z - V > c\lg n - k$. We can therefore say that
+	\begin{align*}
+		\probab[Z > c \lg n | V < k] &\leq \probab[H > c\lg n - k] \\
+		&\leq \exp \biggl\{ -\frac{2k^2}{c\lg n} \biggr\}
+	\end{align*}
+	where we have used the Chernoff-Hoeffding Bounds to get from the first line to the second. 
+	We can see that if we pick some small enough $k$ (maybe $k = c \lg n/10$ for example), then we can say that $\probab[Z > c \lg n | V < k] \leq \exp\{-\epsilon \lg n\} = 1/n^\epsilon$ for some $\epsilon > 0$. We can therefore see that
+	$$\probab[Z > c \lg n] = \frac{1}{n^{k-1}} + \frac{1}{n^\epsilon} \leq \frac{1}{n^{(\textmd{some constant})}}$$
+	which means that
+	$$\probab[Z \geq c \lg n]  \geq 1 - \frac{1}{n^{(\textmd{some constant})}}$$
+	which is sufficient to show that our skip list takes $O(\lg n)$ steps to search for a key \textit{w.h.p.}
+\end{proof}
+
+\subsubsection{Height of Treap}
+
+In the previous lecture, we have proven that the height of a treap to be fairly balanced with the expected depth of $\lg {n}$. Here is another derivation of the height of a treap using Chernoff-Hoeffding Bounds. 
+
+\begin{lemma} The height of a treap of size $n$ is $O(\lg n)$ time w.h.p. 
+\end{lemma}
+\begin{proof}
+% Here's a citation~\cite{Kar84a}.
+\setlength{\parindent}{1cm} Let $A_{i,j}$ be an indicator random variable where, $$A_{i,j} = \begin{cases}
+1 &\text{ if \textit{j} is an ancestor of \textit{i}} \\
+0 &\text{ otherwise}
+\end{cases}
+$$
+Note that for a fixed $i$, all $A_{i,j}$'s are independent, meaning Chernoff-Hoeffding bounds apply.
+
+In this case, the depth of the treap is,
+\newline \begin{align*}
+\textmd{depth}(X_{i})  &= \sum_{j=1}^{n} A_{i,j}\\
+&= 1 + \underbrace{\sum_{j=1}^{i-1}A_{i,j}}_{L} +\underbrace{\sum_{j=i+1}^{n}A_{i,j}}_{R}\\
+\end{align*}
+
+To prove our claim above, we have to show that $$ \mathbb{P}[\text{depth} \leq  k\ln{n} \ ] = 1-\underbrace{ \mathbb{P}[ \text{depth} >  k\ln{n} \ ]}_{*}\geq 1- \frac{1}{n^{\alpha}}$$\\
+where the term  $\frac{1}{n^{\alpha}}$ is the error probability mentioned in the previous lecture. We can bound $(*)$ using union bound which states that for events $A$ and $B$, 
+$$\probab[A \cup B] \leq \probab[A] + \probab[B], $$
+and also use the fact that if an event $C$ causes event $D$ (i.e. $C \implies D$), 
+$$ \probab[C] \leq \probab[D].$$
+The exact reason for this is left as an exercise for the readers.
+
+From above, we can then define event $A$ to be the event when $L>  \frac{k}{2}\ln{n}$ and event $B$ to be the case when $R >  \frac{k}{2}\ln{n}$. Then $A\cup B$ is the event when either $L> \frac{k}{2}\ln{n}$ or $R >  \frac{k}{2}\ln{n}$.
+
+Let $D$ be the event that $\text{depth} >  k\ln{n} $. We can note that the event $D$ will imply the event $A \cup B$ will happen, which means that $P[D] \leq P[A\cup B]$. Furthermore, we know the union bound from above, and so $P[D] \leq P[A] + P[B]$, or 
+$$ \mathbb{P}[ \text{ depth} >  k\ln{n} \ ] \leq  \mathbb{P}[ L>  \frac{k}{2}\ln{n} \ ] +  \mathbb{P}[R > \frac{k}{2}\ln{n} \ ].$$
+Applying the powerful Chernoff-Hoeffding bounds, we then have
+\begin{align*}
+ \mathbb{P}[ L >  (1 + \frac{k}{2}-1)\ln{n} \ ] &\leq \exp\{-\frac{(\frac{k}{2}-1)^2}{3} \times \underbrace{2\ln{n}}_{**}\}\\
+&\leq \frac{1}{n^\alpha} \quad \text{where } \alpha = \frac{(\frac{k}{2}-1)^2}{3}.\\
+\end{align*}
+Note that $(**)$ is bounded by the deepest height of a treap. The same taken to the second term, we will have
+$$ \mathbb{P}[\textmd{depth} \leq k\ln{n} ] \geq 1-\frac{2}{n^\alpha} \geq 1 - \frac{1}{n^\text{(some constant)}}.$$
+\end{proof}
+
+\section{Closest Pairs Problem}
+
+In this last bit of the lecture, we will explore the a simple idea whereby the space is sub-divided into grid cells. By doing so, it turns out to be extremely powerful.
+\subsection{Closest Pair in 2D}
+Given the input as a set \textbf{\textit{P}} of \textit{n} points in 2D, and the goal is to compute the closest pair of points. There are a few ways to solve such a problem. One may try to go about writing two for-loops but of course the algorithm delivers with $O(n^2)$. Another approach to this problem is to solve it using divide-and-conquer yielding $O(n\log n)$ running time. 
+However, there is a faster, and simpler, algorithm that delivers the closest pair in $O(n)$, with allowance of additional operations.
+
+\subsection{Verification Problem}
+Let $CP(Q) $ denote  the distance between the closest pair of points of $Q$, where $Q$ is a set of points. If someone claims $CP(Q) $ is \textit{r}. How do we verify this quickly?
+
+We can in fact do this in linear time:
+\begin{itemize}
+	\item Build a grid of size \textit{r} by \textit{r}
+	\item Dump all the points into the cells by bucketing/hashing. In fact, $p = (x,y)$ goes to the coordinate ($\lfloor{x/r}\rfloor$,$\lfloor{y/r}\rfloor)$.
+	\item If any cell has more than 9 points, $CP(Q) < r$. Note that if the cell is sub-divided into a 3-by-3 sub-cells, Pigeonhole Principle says one of them has at least two points, but then this sub-cell's diameter is strictly less than $r$
+\end{itemize}
+For each operation, we will look at at most 81 points, that is, we will be looking at the neighboring sub-cells plus itself, each containing at most 9 points. The amount of time spent on each point is therefore constant time, and so the algorithm overall will take linear time. 
+
+\subsection{A Closest Pair Algorithm}
+The algorithm will be an edited version of the verification algorithm. It will as follows.
+\begin{enumerate}
+	\item Permute the given input set \textbf{\textit{P}} of points randomly, say  \textbf{\textit{P}} =  $\langle p_{1},p_{2},...,p_{n}\rangle $ is a permutation of the given input.
+	\item start with $r_{2} = || p_{1} - p_{2} ||_{2}$. In this case, the above grid will be sub-divided into an  $r$-by-$r$ grid where $r=r_{2}$
+	\item $ \forall i \in \{3,4,5, ... , n\}, p_{i} \textmd{ will be added} $ . When added, there algotithm shall:
+	\begin{itemize}
+		\item Check whether $p_{i}$ forms a new closest pair.This requires the checking of $p_{i}$ to its original and other 8 neighboring cells, all of which contain at most 9 points. 
+		\item If $p_{i}$ becomes the new closest pair, rebuild the grid using the new closest pair distance.
+		\item Continue with this grid otherwise.
+	\end{itemize}
+\end{enumerate}
+
+We claim that te algorithm above takes linear time. To show this, let $X_i$ be a indicator random variable where
+$$X_{i} =\begin{cases}
+1 &\text{ if $p_{i}$ forms a new closest pair }\\
+0 &\text{ otherwise}
+\end{cases}
+$$
+The total cost is then given by the resurrance,
+$$T(n) = O(1) + \sum_{i=3}^n (O(1) + X_{i}\cdot i)$$
+We claim that $\mathbb{P}[X_{i}=1] \leq \frac{2}{i}$, where $p_i$ is randomly drawn from the permuted input. The probability of a point randomly drawn forms the new closest pair is given by two cases:
+\begin{itemize}
+	\item The closest pair is unique and they are x--y. Then either one of them will be picked as $p_{i}$ with $2/i$ probability. 
+	\item The closest pair is not unique, then the probability that $p_{i}$ becomes the \textit{new} closest pair is 0.  
+\end{itemize}
+Hence, the expected running time is then
+\begin{align*}
+\mathbb{E}[T(n)] &\leq   O(1) + n + \sum_{i=3}^n[\underbrace{X_{i}}_{2/i}\cdot i]\\
+& = O(n) + \sum_{i=3}^n[\frac{2}{i}\cdot i]\\
+&= O(n).
+\end{align*}
+
+\end{document}

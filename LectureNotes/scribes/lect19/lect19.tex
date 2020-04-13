@@ -1,0 +1,162 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+\usepackage{algorithm}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+\usepackage{amsmath}
+\usepackage[noend]{algpseudocode}
+\usepackage{tikz}
+\usepackage{dsfont}
+\usepackage{forest}
+\forestset{
+	sn edges1/.style={for tree={edge={->},where n children=0{tier=word}{}}}, 
+	background tree/.style={for tree={text opacity=0.2,draw opacity=0.2,edge={draw opacity=0.2}}},
+	sn edges2/.style={for tree={edge={<-},where n children=0{tier=word}{}}},
+}
+
+\graphicspath{ {./images/} }
+
+
+\CourseName{Comtemporary Algorithms T.II/2019-20}
+\Scribe{Suchanun P. \& Suchanuch P.}
+\Lecturer{Dr. Kanat Tangwongsan}
+\LectureNumber{19}
+\LectureDate{11 March 2020}
+\LectureTitle{Random Walks II}
+
+\lstset{style=mystyle}
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{label = Step \arabic*:}
+
+\algblock{ParFor}{EndParFor}
+\algnewcommand\algorithmicparfor{\textbf{parfor}}
+\algnewcommand\algorithmicpardo{\textbf{do}}
+\algnewcommand\algorithmicendparfor{\textbf{end\ parfor}}
+\algrenewtext{ParFor}[2]{\algorithmicparfor\ #1\ \textbf{in}\ #2 \algorithmicpardo}
+\algrenewtext{EndParFor}{\algorithmicendparfor}
+
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt      
+\newcommand\norm[1]{\left\lVert#1\right\rVert}
+\begin{document}
+\MakeScribeTop
+
+\section{Recap}
+
+
+
+\subsection{Random Walks}
+\begin{itemize}
+  \item Start from $\vec{p_0} \in \mathbb{R}^n, \mathds{1}^T\vec{p_0} =1$
+  \item Walk randomly to a neighbor
+  \item Reach a steady state $\vec{\pi}$, where $\vec{\pi} = W\vec{\pi}$
+\end{itemize}
+
+\subsection{Lazy Walks}
+\begin{itemize}
+  \item Start from $\widehat{W} = \frac{1}{2}(I + W)$
+\end{itemize}
+We see that $$\widehat{W}\vec{\pi} = \frac{1}{2}I\vec{\pi} + \frac{1}{2}\widehat{W}\vec{\pi} =  \frac{1}{2}\vec{\pi}+ \frac{1}{2}\vec{\pi} = \vec{\pi}  $$
+\subsection{Question: How fast does $W^t\vec{p_0}$ converges?}
+We want to show that  $\widehat{W}$ has eigenvalues 
+$$1 = \lambda_1 > \lambda_2 \geq \lambda_3 \geq ... \geq \lambda_n \geq 0$$
+where eigenvector correspoding to $\lambda_1 = 1$ is $\vec{\pi}$\\
+And so $\widehat{W}^k$ has eigenvalues $$\lambda_1^k > \lambda_2^k \geq \lambda_3^k \geq ... \geq \lambda_n^k$$
+where $\lambda_1^k$ stays at 1 while $\lambda_2^k, \lambda_3^k, ... $ eventually goes to zeros
+
+\begin{lemma} Let $W$ be the walk matrix for a connected graph. Then all eigenvalues of $W$ are between 1 and -1. Plus, $W$ has exactly one eigenvector with eigenvalue of 1.
+\end{lemma}
+\begin{proof}
+Let $\vec{v}$ be eigenvector of $W$ such that $W\vec{v} = \lambda\vec{v}$. Then, 
+\begin{eqnarray*}
+|\lambda v_k| &=& |(W\vec{v})_k|\\
+&=& \left|\sum_{i \sim k}W_{ik}\vec{v_i}\right|\\
+&=& \left|\sum_{i \sim k} \frac{v_i}{d_i}\right|\\
+&\leq& \sum_{i \sim k}  \left|\frac{v_i}{d_i}\right| \text{\ \ \ \ \ \ \ \ \ by triangle inequality}\\
+&\leq&  \sum_{i \sim k}  \left|\frac{v_k}{d_k}\right| \text{\ \ \ \ \ \ \ \ \ since }\left| \frac{v_i}{d_i}\right| \leq \left| \frac{v_k}{d_k}\right|\\
+&=& |v_k|
+\end{eqnarray*}
+And so $|\lambda v_k| \leq |v_k| \rightarrow |\lambda| \leq 1$. For the second part, we see $\vec{\pi}$ is an eigenvector of $\lambda = 1$.\\We can also see that if $W\vec{v}=\lambda\vec{v}$, then $\widehat{W}\vec{v} = \left[ \frac{1}{2}(1+\lambda)\right]\vec{v}$. This means that eigenvector of $W$ and $\widehat{W}$ is the same, but the eigenvector of $\widehat{W}$ is between 0 and 1.
+\end{proof}
+\begin{claim} $W$ is similar to $M = D^{-\frac{1}{2}}AD^{-\frac{1}{2}}$ where $D^{\frac{1}{2}} = \text{diag}(d_1, d_2, ..., d_n)$ and $A$ is an adjacent matrix.
+\end{claim}
+\begin{proof} $D^{\frac{1}{2}}MD^{-\frac{1}{2}} = D^{\frac{1}{2}}(D^{-\frac{1}{2}}AD^{-\frac{1}{2}})D^{-\frac{1}{2}} = AD^{-1} = W$. Similarly, $\widehat{M} = D^{-\frac{1}{2}}\widehat{W}D^{-\frac{1}{2}}$ is similar to $\widehat{W}$.
+\end{proof}
+
+We see that $M\vec{v} = \lambda\vec{v} \rightarrow D^{\frac{1}{2}}(D^{-\frac{1}{2}}AD^{\frac{1}{2}})\vec{v} = D^{\frac{1}{2}}\lambda\vec{v} = \lambda(D^{\frac{1}{2}}\vec{v})$.\\ For symmetric semipositive digenvalues $B$, the $B$-norm is given by $$\norm{\vec{x}}_B= \sqrt{\vec{x}^TB\vec{x}} = \sqrt{\vec{x}^TB^{\frac{1}{2}}B^{\frac{1}{2}}\vec{x}} = \sqrt{(B^\frac{1}{2}\vec{x})^T(B^{\frac{1}{2}}\vec{x})} = \norm{B^\frac{1}{2}\vec{x}}_2$$
+
+\begin{theorem}
+Let $\widehat{W}$ be the walk matrix for lazy random walks on a connected graph. FOr any initial distribution $\hat{p_0}$ and timestep $t \geq 0,$ $$ \norm{\widehat{W}^t\vec{p_0}- \vec{\pi}}_{D^{-1}} \leq \lambda_2^t \norm{\vec{p_0}}_{D^{-1}}$$
+where $\lambda_2$ is the second largest eigenvalue of $\widehat{W}$.
+\end{theorem}
+\begin{proof}
+Let $\vec{v_1}, \vec{v_2}, ..., \vec{v_n}$ be the eigenvectors of $\hat{M} = D^{-\frac{1}{2}}\widehat{W}D^{\frac{1}{2}}.$ We see that $\widehat{M} = \sum_i \lambda_i\vec{v}_i\vec{v_i}^T$ by the Spectral theorem. Then, $$\hat{W} = D^{\frac{1}{2}}\hat{M}D^{-\frac{1}{2}} = D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}$$ We have 
+\begin{eqnarray*}
+\widehat{W}^t &=& \left[D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}\right]\left[D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}\right]...\left[D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}\right]\\
+&=& D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)\left(D^{-\frac{1}{2}}D^{\frac{1}{2}}\right)\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}...\left[D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}\right]\\
+&=& D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)I\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)I\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)... I \left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)D^{-\frac{1}{2}}\\
+&=& D^{\frac{1}{2}}\left(\sum_i \lambda_i\vec{v_i}\vec{v_i}^T\right)^tD^{-\frac{1}{2}}\\
+\text{Since } \vec{v_i}^T\vec{v_j} = 0\\
+&=& D^{\frac{1}{2}} \left( \sum_i \lambda_i^t \vec{v_i} \vec{v_i}^T \right)D^{-\frac{1}{2}}
+\end{eqnarray*}
+Then, we get $$\widehat{W}^t\vec{p_0} = D^{\frac{1}{2}} \left( \sum_i \lambda_i^t \vec{v_i} \vec{v_i}^T \right)D^{-\frac{1}{2}}\vec{p_0}$$
+Write $$D^{-\frac{1}{2}}\vec{p_0} = \sum_j \vec{v_j}\left( D^{\frac{1}{2}}\vec{p_0}\right)^T \vec{v_j}$$
+and define $$\alpha_j = \vec{v_j}^T(D^{\frac{1}{2}}\vec{p_0})$$
+Then,
+\begin{eqnarray*}
+\vec{W}^t\vec{p_0} &=& D^{\frac{1}{2}}\left( \sum_i \lambda_i^t\vec{v_i}\vec{v_i}^T\right)\left( \sum_j \alpha_j \vec{v_j}\right)\\
+\vec{W}^t\vec{p_0} &=& D^{\frac{1}{2}}\left( \sum_i \lambda_i^t\alpha_i\vec{v_i}\right)\\
+\vec{W}^t\vec{p_0} &=& D^{\frac{1}{2}}\lambda_1^t\alpha_1\vec{v_1} + \sum_{i\geq2}D^{\frac{1}{2}}\lambda_i^t\alpha_i\vec{v_i}\\
+\vec{W}^t\vec{p_0} &=& \vec{\pi}+ \sum_{i\geq2}D^{\frac{1}{2}}\lambda_i^t\alpha_i\vec{v_i} \text{ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ Claim to be proved: } D^{\frac{1}{2}}\lambda_1^t\alpha_1\vec{v_1} = \pi\\
+\vec{W}^t\vec{p_0}  - \vec{\pi} &=& \sum_{i\geq2}D^{\frac{1}{2}}\lambda_i^t\alpha_i\vec{v_i}\\
+D^{-\frac{1}{2}}(\vec{W}^t\vec{p_0}  - \vec{\pi}) &=& D^{-\frac{1}{2}}\sum_{i\geq2}D^{\frac{1}{2}}\lambda_i^t\alpha_i\vec{v_i}\\
+D^{-\frac{1}{2}}(\vec{W}^t\vec{p_0}  - \vec{\pi}) &=& \sum_{i \geq 2} \lambda_i^t\alpha_i\vec{v_i}
+\end{eqnarray*}
+Then,
+\begin{eqnarray*}
+\norm{\widehat{W}^t\vec{p_0}-\vec{\pi}}_{D^{-1}} &=& \norm{D^{-\frac{1}{2}}\left(\widehat{W}^t - \pi \right)}_2\\
+&=& \norm{\sum_{i \geq 2} \lambda_i^t \alpha_i \vec{v_i}}_2\\
+&=& \sqrt{\sum_{i \geq 2} \lambda_i^{2t}\lambda_i^2} \\
+&\leq& \lambda_2^t \sqrt{\sum_{i \geq 1}\alpha^2}\text{\ \ \ \ \ \ \ \ \ \ \ \ \ since } \lambda_i \leq \lambda_2 \text{ for all } i \geq 2\\
+&=& \lambda_2^t \norm{D^{-\frac{1}{2}\vec{p_0}}}\\
+&=&  \lambda_2^t \norm{\vec{p_0}}_{D^{-1}}
+\end{eqnarray*}
+\end{proof}
+\newpage
+\begin{claim}
+$D^{\frac{1}{2}}\alpha_1\vec{v_1} = \vec{\pi}$
+\end{claim}
+\begin{proof}
+\begin{eqnarray*}
+\alpha_1 &=& \vec{v_1}^TD^{-\frac{1}{2}}\vec{p_0} \\
+&=& \left( \frac{D^{-\frac{1}{2}}\vec{\pi}}{\norm{D^{-\frac{1}{2}}\vec{\pi}}}\right)D^{-\frac{1}{2}}\vec{p_0} \text{\ \ \ \ \ \ \ \ \ \ since } \vec{v_1} \text{ is a unit vector of } D^{-\frac{1}{2}}\vec{\pi}\\
+&=& \left( \frac{D^{-\frac{1}{2}}\vec{d}}{\norm{D^{-\frac{1}{2}}\vec{d}}}\right) D^{-\frac{1}{2}}\vec{p_0} \text{\ \ \ \ \ \ \ \ \ \ since } \pi = \frac{1}{2m}\vec{d}\\
+&=& \frac{\mathds{1}^T\vec{p_0}}{\norm{\vec{d}^\frac{1}{2}}}\\
+&=& \frac{1}{\norm{\vec{d}^\frac{1}{2}}}
+\end{eqnarray*}
+\begin{eqnarray*}
+D^{\frac{1}{2}}\alpha_1\vec{v_1} &=& \frac{D^{\frac{1}{2}}D^{-\frac{1}{2}}\vec{d}}{\norm{\vec{d}^{\frac{1}{2}}}} \cdot \frac{1}{\norm{\vec{d}^\frac{1}{2}}}\\
+&=& \frac{\vec{d}}{\norm{\vec{d}^{\frac{1}{2}}}^2}\\
+&=& \frac{\vec{d}}{2m}\\
+&=& \vec{\pi}
+\end{eqnarray*}
+\end{proof}
+
+\subsection{Page Rank}
+\begin{itemize}
+\item With some probability $\alpha$, go to every page.
+\item With probability $1-\alpha$, walk to a neighbor node.
+\item Cluster up at some most visited page (high influence)
+\end{itemize}
+
+
+
+\end{document}

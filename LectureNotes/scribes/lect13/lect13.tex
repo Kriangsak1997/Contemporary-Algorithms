@@ -1,0 +1,262 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+\usepackage{algorithm}
+\usepackage[english]{babel}
+\usepackage{amsthm}
+\usepackage[noend]{algpseudocode}
+\usepackage{tikz}
+\usepackage{forest}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage[noend]{algpseudocode}
+\usepackage{wasysym}
+\forestset{
+	sn edges1/.style={for tree={edge={->},where n children=0{tier=word}{}}}, 
+	background tree/.style={for tree={text opacity=0.2,draw opacity=0.2,edge={draw opacity=0.2}}},
+	sn edges2/.style={for tree={edge={<-},where n children=0{tier=word}{}}},
+}
+
+\graphicspath{ {./images/} }
+
+\newcommand{\whp}{\textit{w.h.p.}}
+\newcommand{\expected}{\mathbb{E}}
+\newcommand{\probab}{\mathbb{P}}
+\newcommand{\normdist}[2]{\mathcal{N}(#1,#2)}
+
+\CourseName{Comtemporary Algorithms T.II/2019-20}
+\Scribe{Kriangsak T. \& Apivich H.}
+\Lecturer{Dr. Kanat Tangwongsan}
+\LectureNumber{13}
+\LectureDate{17 February 2020}
+\LectureTitle{Online LP \& WMA I}
+
+\lstset{style=mystyle}
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{label = Step \arabic*:}
+
+\algblock{ParFor}{EndParFor}
+\algnewcommand\algorithmicparfor{\textbf{parfor}}
+\algnewcommand\algorithmicpardo{\textbf{do}}
+\algnewcommand\algorithmicendparfor{\textbf{end\ parfor}}
+\algrenewtext{ParFor}[2]{\algorithmicparfor\ #1\ \textbf{in}\ #2 \algorithmicpardo}
+\algrenewtext{EndParFor}{\algorithmicendparfor}
+
+\tikzset{every picture/.style={line width=0.75pt}} %set default line width to 0.75pt      
+
+\begin{document}
+\MakeScribeTop
+
+\section{Experts' Predictions Problem}
+
+Let's say we want to predict whether or not an event $A$ will happen. In doing so, we will go about asking $N$ number of experts to make $T$ rounds of predictions. As an algorithm, in step $t$ (where $t = 1, 2, \ldots, T$),
+\begin{enumerate}
+	\item Each expert $i \in [N] $ advises: YES/NO
+	\item Aggregator predicts the outcome: YES/NO
+	\item An adversary (think of it as God who knows all an aggregator would predict) will determine for an whether an event will occur: YES/NO
+	\item Observe the outcome 
+\end{enumerate}
+In any predictions made, there can be the case when mistakes are made by those $N$ experts. A mistake is when the predicted outcome we made does not match the actual outcome. Our goal is to minimise the number of mistakes made in one prediction.
+
+\begin{theorem}
+	\label{expertbound}
+	If there is a perfect expert, then, there is an aggregator that makes at most $\log_{2}N$ mistakes
+\end{theorem}
+\begin{proof}
+	Think of this as how many mistakes have to made until the perfect expert is found.
+	If a mistake has been made, at least $N/2$ experts were wrong. Therefore, there will be at most  $\log_{2}N$ mistakes made until the perfect expert is found.
+\end{proof}
+\begin{theorem}
+	\label{expertbound2}
+	If the best expert makes $m$ mistakes, then the aggregator makes $O(m(\log N) + \log N)$ mistakes.
+\end{theorem}
+\clearpage
+\begin{proof}
+	Note the following.
+	\begin{itemize}
+		\item Every run,  imperfect experts make  $\leq \log_{2}N +1$ mistakes and the perfect expert makes $\geq 1$ mistake(s)
+		\item There can be at most $m$ runs: in the $m+1$ run, the best expert makes no more mistake.
+		\item By Theorem \ref{expertbound} all imperfect experts make $\leq \log_{2}N$
+	\end{itemize}
+	Therefore, the total number of mistakes is
+	$O(m(\log_{2}N +1) \log_{2}N) $\\
+\end{proof}
+
+Remark: notice that the above bound is multiplicative of $m$, we will try to do better in trying to reduce it into an additive bound.
+
+\section{Weighted Majority Algorithm (WMA)}
+
+To continue with the expert example, we will try to  come up with a few algorithms that will improve upon the bound from Theorem \ref{expertbound2}. What we will introduce is the idea of the Weighted Majority Algorithm (or WMA).
+
+\subsection{Initial Method}
+
+The idea of WMA is to trust the correct experts more than the incorrect ones. We will do this by weighing the answers from the more accurate experts more heavily, and weigh the less accurate experts less. We will do so by assigning weights to the different experts and reducing them when they get it wrong.
+
+Initially, we define the weight for all the experts (in the $0$th round) to be $w_i^{(0)} =1$. For the next rounds, we define
+$$
+w_i^{(t+1)} = \begin{cases}
+w_i^{(t)} &\textmd{ if $i$th expert was correct,} \\
+\frac{1}{2}w_i^{(t)} & \text{ if $i$th expert was wrong.}
+\end{cases}
+$$
+The prediction will be made and the weights adjusted. The algorithm is as noted below.
+
+\begin{algorithm}[H]
+	\caption{Weighted Majority Algorithm}
+	\label{alg1}
+	\begin{algorithmic}[1]
+		\Function{WMA}{}
+		\State {Initialise $w_i^{(0)} = 1$ for all $i$ in $1, 2, \ldots, N$}
+		\For{$t$ \textbf{in} $1, 2, \ldots, T$}
+		\State {Gather predictions (YES or NO) from each experts}
+		\If{$\sum\limits_{i\text{ say YES} } w_i^{(t)} > \sum\limits_{i\text{ say NO} } w_i^{(t)}$}
+			\State {Predict YES and compare to the adversary}
+		\Else
+			\State {Predict NO and compare to the adversary}
+		\EndIf
+		\State {Update each weights by $w_i^{(t+1)} \gets \begin{cases}
+			w_i^{(t)} &\text{if $i$th expert was correct in round $t$,} \\
+			(1-\epsilon) w_i^{(t)} &\text{otherwise}
+			\end{cases}$}
+		\EndFor
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+We will now try to find how many times the algorithm will make the wrong decision. Let's define the potential function 
+$$\Phi^{(t)} = \sum_{i}^{T}w_i^{(t)}.$$
+Notice that $\Phi^{(0)}=n$ and $\Phi^{(t+1)} \leq \Phi^{(t)}.$
+
+Let's say a mistake was made at step $t$. Then,
+\begin{align*}
+\Phi^{(t+1)} & = \sum_{i=1}^{T}w_i^{(t+1)} \\
+&= \sum_{i\text{ is right}}w_i^{(t+1)} +\sum_{i\text{ is wrong}}w_i^{(t+1)}\\
+&= \sum_{i\text{ is right}}w_i^{(t)} + \frac{1}{2}\sum_{i\text{ is wrong}}w_i^{(t)} \\
+&= \sum_{i\text{ is right}}w_i^{(t+1)}  +(1- \frac{1}{2})\sum_{i\text{ is wrong}} w_i^{(t)} &(*) \\
+&= \Phi^{(t)}  -  \frac{1}{2}\sum_{i\text{ is wrong}}w_i^{(t)} \\
+&\leq(1-\frac{1}{4}) \Phi^{(t)} \\
+&= \frac{3}{4} \Phi^{(t)}
+\end{align*}
+From $(*)$, let's zoom in into what happens at this step. We can express the potential function as
+\begin{align*}
+\Phi^{(t)} &= \sum_{i}^{T}w_i^{(t)} \\
+&=\sum_{i\text{ is right}}^{T}w_i^{(t)} +\sum_{i\text{ is wrong}}^{T}w_i^{(t)}\\
+\end{align*}
+If we expand $(*)$, we see that
+\begin{align*}
+(*) & = \underbrace{ \sum_{i\text{ is right}}^{T}w_i^{(t+1)}  + \sum_{i\text{ is wrong}}^{T}w_i^{(t)} }_{\Phi^{(t)}}  - \frac{1}{2} \sum_{i\text{ is wrong}}^{T}w_i^{(t)}\\
+&= \Phi^{(t)} - \frac{1}{2} \underbrace{\sum_{i\text{ is wrong}}^{T}w_i^{(t)}}_{\leq \frac{1}{2}\Phi^{(t)}} \geq \frac{1}{2}\Phi^{(t)}\\
+\end{align*}
+Now, enough with unattractive summations, we will analyse what would happen to the total number of mistakes (denoted by $M$) the aggregator makes  if (perfect) expert $i$ makes $ \textbf{\textit{$m_i$ }} $ mistakes, then
+$$  \left ( \frac{1}{2} \right) ^m = w_i^{(T)}  \leq  \Phi^{(T+1)} \leq \left (\frac{3}{4} \right )^M \Phi^{(0)}$$
+which after taking log on both sides,
+\begin{align*}
+-m_i &\leq M\log_2\frac{3}{4} + \log_2N\\
+m_i &\geq M\log_2\frac{4}{3} - \log_2N\\
+M &\leq \frac{1}{\log_2\frac{4}{3}} (m_i +  \log_2N)\\
+M & \leq 2.41 (m_i +  \log_2N)
+\end{align*}
+
+We can see that the number of mistakes the algorithm will make is bounded by $ 2.41 (m_i +  \log_2N)$.
+
+\subsection{Generalised WMA}
+
+We can make the WMA we have discussed more generalised. The way we do so is rather than halving the weight of the expert when they get it wrong, we instead reduce it by some other factor. More specifically, we instead update the weights in Line 9 from above according to
+$$w_i^{(t+1)} = \begin{cases}
+w_i^{(t)} &\text{if $i$th expert was correct in round $t$,} \\
+(1-\epsilon) w_i^{(t)} &\text{otherwise}
+\end{cases}$$
+where we define $0 < \epsilon < 1$. Similar to above, we can analyse how many incorrect guesses will be made by this method. As of above, we can define the potential to be $\Phi^{(t)} = \sum_i w_i^{(t)}$. By a similar analysis as above we can show that if the prediction is wrong in round $t$ then $\Phi^{(t+1)} \leq \big(1 - \frac{\epsilon}{2}\big)\Phi^{(t)}$. 
+
+This means that if we have an expert $i$ who makes $m_i$ mistakes, then after $T$ turns,
+\begin{align*}
+	w_i^{(T)} &= (1-\epsilon)^{m_i}\\
+	 &\leq \Phi^{(T+1)} \leq \Phi^{(0)}\big(1 - \frac{\epsilon}{2}\big)^M =  N\big(1 - \frac{\epsilon}{2}\big)^M
+\end{align*}
+since $\Phi^{(t)}$ would have shrunken $M$ times. This means that
+\begin{align*}
+	(1-\epsilon)^{m_i} &\leq N\big(1 - \frac{\epsilon}{2}\big)^M \\
+	(1-\epsilon)^{m_i} &\leq Ne^{-\frac{M\epsilon}{2}} &\text{since $1-x \leq e^{-x}$} \\
+	m_i \ln(1-\epsilon) &\leq -\frac{M\epsilon}{2} + \ln N &\text{by taking natural log on both side} \\
+	M &\leq \frac{2[\ln N - m_i \ln(1-\epsilon)]}{\epsilon}\\
+	M &\leq \frac{2}{\epsilon}[\ln N + m_i (\epsilon + \epsilon^2)] &\text{since $\ln\bigg(\frac{1}{1-x}\bigg)\leq x + \frac{x^2}{2} \leq x + x^2$}\\
+	M &\leq 2m_i(1+\epsilon) + \frac{2\ln N}{\epsilon}
+\end{align*}
+which means that the number of mistakes that we will make with our predictions is bounded by $2m_i(1+\epsilon) + O\big(\frac{\ln N}{\epsilon}\big)$. Note that if $m_i^*$ is the number of mistakes made by the best expert, then $M$ is bounded by $2m_i^*(1+\epsilon) + O\big(\frac{\ln N}{\epsilon}\big)$. 
+
+While this algorithm is good, there is a factor of 2 in the bound which cannot be gotten rid of. The reason for this is in the fact that our algorithm is deterministic. Imagine if we have two experts, one who always answers true to every case, and the other who answers false to every case. Then, if we make $M$ mistakes, then one of the experts will be incorrect at most $M/2$ times. We can see that there is a factor of 2 between the number of times we get it wrong, and that the expert gets it wrong.
+
+\section{Randomised WMA}
+
+We can improve upon WMA from above by adding an element of randomess into it. The new algorithm will be as follows.
+\begin{algorithm}[H]
+	\caption{Randomised WMA}
+	\begin{algorithmic}[1]
+		\Function{RandomisedWMA}{}
+		\State {Initialise $w_i^{(0)} = 1$ for all $i$ in $1, 2, \ldots, N$}
+		\For{$t$ \textbf{in} $1, 2, \ldots, T$}
+		\State {Gather predictions (YES or NO) from each experts}
+		\State {$p \gets \begin{cases}
+			\text{NO} &\text{with probability $\frac{\sum\limits_{i\text{ say NO} } w_i^{(t)}}{\Phi^{(t)}}$}\\
+			\\[-7pt]
+			\text{YES}  &\text{with probability $\frac{\sum\limits_{i\text{ say YES} } w_i^{(t)}}{\Phi^{(t)}}$}
+			\end{cases}$}
+		\State{Predict $p$ and compare to the adversary}
+		\State {Update each weights by $w_i^{(t+1)} \gets \begin{cases}
+			w_i^{(t)} &\text{if $i$th expert was correct in round $t$,} \\
+			(1-\epsilon) w_i^{(t)} &\text{otherwise}
+			\end{cases}$}
+		\EndFor
+		\EndFunction
+	\end{algorithmic}
+\end{algorithm}
+
+We can see that the algorithm above is exactly the same as in Algorithm \ref{alg1}, except for the fact that the prediction part (Lines 5-8) is replaced with a random decision process similar to a biased coin. This algorithm, however, is expected to result in lower number of incorrect predictions.
+
+\begin{theorem}
+	Let $M$ be the number of wrong guesses made by \textsc{RandomisedWMA}. Then, $\expected[M] = m_i (1+\epsilon) + O\big(\frac{\ln N}{\epsilon}\big)$.
+\end{theorem}
+\begin{proof}
+	First, we define $$F^{(t)} = \frac{\sum\limits_{i\text{ is wrong} } w_i^{(t)}}{\Phi^{(t)}}, $$ which simply represents the total weight of the experts who got their answer wrong. This means that the probability that \textsc{RandomisedWMA} gets the answer wrong in round $t$ is $F^{(t)}$. By linearity of expectations, this means that $\expected[M] = \sum_{t=1}^{T} F^{(t)}$. 
+	
+	We will now show a useful result. We can see that
+	\begin{align*}
+		\Phi^{(t+1)} &= \underbrace{\sum\limits_{i\text{ is right} } w_i^{(t)}}_\text{if expert right, weight stays the same} + \underbrace{(1-\epsilon)\sum\limits_{i\text{ is wrong} } w_i^{(t)}}_\text{if expert wrong, multiply factor} \\
+		&= \Phi^{(t)} [ (1-F^{(t)}) + (1-\epsilon)F^{(t)} ]\\
+		&= \Phi^{(t)}(1-\epsilon F^{(t)}).
+	\end{align*}
+	
+	We can therefore see that if expert $i$ makes $m_i$ mistakes, then
+	\begin{align*}
+		w_i^{(T)} &= (1-\epsilon)^{m_i}, \text{and} \\
+		w_i^{(T)} &\leq \Phi^{(T)} \\
+		&= \big(1 - \epsilon F^{(T-1)}\big) \Phi^{(T-1)} \\
+		&= \big(1 - \epsilon F^{(T-1)}\big) \big(1 - \epsilon F^{(T-2)}\big)\Phi^{(T-2)} \\
+		&\vdotswithin{\leq} \\
+		&\leq \bigg( \prod_{t=1}^{T} (1 - \epsilon F^{(t)}) \bigg) \Phi^{(0)} \\
+		&= N\exp \bigg( -\epsilon \sum_{t=1}^{T} F^{(t)} \bigg) \\
+		&=N e^{-\epsilon \expected[M]}
+	\end{align*}
+	and therefore
+	\begin{align*}
+		(1-\epsilon)^{m_i} &\leq N e^{-\epsilon \expected[M]} \\
+		m_i \ln (1-\epsilon) &\leq -\epsilon \expected[M] + \ln N &\text{by taking log on both sides}\\
+		\expected[M] &\leq \frac{\ln N - m_i \ln(1-\epsilon)}{\epsilon} \\
+		\expected[M] &\leq m_i(1+\epsilon) + \frac{\ln N}{\epsilon} &\text{using a similar approximation from before}
+	\end{align*}
+	which shows that $\expected[M] \leq m_i(1+\epsilon) + O\big(\frac{\ln N}{\epsilon}\big)$.
+\end{proof}
+
+We can see that using our randomised algorithm, we are able to get rid of the factor of 2 that we previously have. Again, if the best expert we have gets the predictions wrong $m_i^*$ times, then $\expected[M]$ is bounded by $m_i^*(1+\epsilon) + O\big(\frac{\ln N}{\epsilon}\big)$.
+
+We can also make a note of a concept called \textit{regret}. The regret is defined as $\expected[M] - m^*_i$, which is how many more times you (the aggregator) predicts the wrong outcome compared to the best expert we have. In this algorithm, the regret is bounded by $m_i\epsilon + O\big(\frac{\ln N}{\epsilon}\big)$.
+
+\end{document}

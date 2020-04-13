@@ -1,0 +1,262 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+\usepackage{multicol}
+\setlength{\columnsep}{1cm}
+\newcommand\myeq{\mathrel{\overset{\makebox[0pt]{\mbox{\normalfont\tiny\sffamily def}}}{=}}}
+\graphicspath{ {./images/} }
+
+\CourseName{Comtemporary Algorithms T.II/2019-20}
+\Scribe{Kanokpon \& Kanokpon}
+\Lecturer{Dr. Kanat Tangwongsan}
+\LectureNumber{14}
+\LectureDate{13 January 2020}
+\LectureTitle{Linear Programming I}
+
+\lstset{style=mystyle}
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{label = Step \arabic*:}
+
+\begin{document}
+\MakeScribeTop
+
+\section{Algebraic view}
+\newcommand{\expected}{\mathbb{E}}
+\newcommand{\probab}{\mathbb{P}}
+
+\subsection{Introduction to linear programming}
+The aim is to minimizing  costs of various systems while meeting different constraints.
+
+Linear program is consist of 
+\begin{itemize}
+	\item  variables: $x_1,x_2,\dots x_n$
+	
+	\item linear constrain: eg. $2x_2-5x_7$ 
+	
+	\item linear objective: function that we aim to maximize/minimize
+\end{itemize}
+\\
+\textbf{Example}\\
+  Objective minimize $3x_1+2x_2$\\
+  subj to:
+\fbox{\begin{minipage}{1em}
+	  \begin{align*}
+	x_1 \geq 0\\
+	x_1+x_2 \leq 2\\
+	x_1-x_2 \geq 1\\
+	\end{align*}
+\end{minipage}}
+Feasible(setting of $x_1,x_2$ that satisfy the constraints)
+\subsection{Diet problem}
+How to spend the least money while getting enough nutrient.
+\begin{itemize}
+	\item $n$ food
+	\item $m$ nutrients 
+	\item $a_{ij}$ -amount of nutrient $i$ in a unit of food $j$
+	\item $b_i$ -minimize need of nutrient $i$
+	\item $c_j$ unit cost of food $j$
+	\item   $x_j$-amount of food $j$ we consume
+\end{itemize}
+ Nutrient i:\\
+  $\forall _i a_{i1}x_1+a_{i2}x_2+a_{i3}x_3+\dots a_{in}x_n \geq b_i -(\text{enough nutrient }i)\\
+\vdots\\
+x_j \geq 0$\\
+
+  minimize $c_ix_1+c_2x_2+\dots c_nx_n$
+  
+   minimize \fbox{$\sum_{j=1}^n c_jx_j$} $= c^Tx$
+   
+   subj to:
+   
+   $\forall_i: \sum_{j=1}^n a_{ij}\geq b_i$
+   
+   \fbox{$\forall_j:x_j \geq 0$}  $\to \vec{x} \geq \vec{0}$\\\\
+   In term of vector
+   
+   \begin{multicols}{2}
+   	  \begin{align*}
+   	\vec{x}&=
+   	\begin{bmatrix}
+   	x_1\\
+   	x_2\\
+   	\vdots\\
+   	x_n\\
+   	\end{bmatrix}\\
+   	\vec{c}&=
+   	\begin{bmatrix}
+   	c_1\\
+   	c_2\\
+   	\vdots\\
+   	c_n\\
+   	\end{bmatrix}\\
+   	\vec{b}&=
+   	\begin{bmatrix}
+   	b_1\\
+   	b_2\\
+   	\vdots\\
+   	b_n\\
+   	\end{bmatrix}\\
+   	\end{align*}
+   	
+   	\columnbreak
+   \begin{align*}
+   A\vec{x}&=
+   \begin{bmatrix}
+   a_{11} &a_{12} \dots &a_{1n}\\
+   a_{21} &a_{22} \dots &a_{2n}\\
+   &\ddots &a_{m,n}
+   \end{bmatrix}
+   \begin{bmatrix}
+   x_1\\
+   x_2\\
+   \vdots\\
+   x_n\\
+   \end{bmatrix}\\
+   &=\begin{bmatrix}
+   \sum_ja_{1j}x_j\\
+   \sum_ja_{2j}x_j\\
+   \sum_ja_{ij}x_j
+   \end{bmatrix}
+   \geq
+   \begin{bmatrix}
+   b_1\\
+   b_2\\
+   \vdots\\
+   b_m\\
+   \end{bmatrix}\\
+   \end{align*}
+   	\end{multicols}
+\fbox{\begin{minipage}{8em}
+		General form
+		\begin{align*}
+		&\text{Minimize } \vec{c}^T\vec{x}\\
+		&\text{subj to } A\vec{x} \geq \vec{b}
+		\end{align*}
+\end{minipage}}
+$\leftrightarrows^{\text{change}= \to \geq \& \leq}_\text{stack, $x^+x^-$ variable}$
+\fbox{\begin{minipage}{8em}
+		Standard form
+		\begin{align*}
+		\text{Minimize } &c^Tx\\
+		\text{subj to } &A'\vec{x} = \vec{b}'\\
+		&\vec{x} \geq 0
+		\end{align*}
+\end{minipage}}
+
+$$\left[\frac{A}{I}\right]\begin{bmatrix}
+x_1\\
+x_2\\
+\vdots\\
+x_n\\
+\end{bmatrix}=\begin{bmatrix}
+A_x\\
+\dots\\
+x\\
+\end{bmatrix}
+\geq 
+\left[\frac{\vec{b}}{\vec{0}}\right]$$ 
+\textbf{Tricks}
+\begin{enumerate}
+	\item minimize $c^Tx$ = maximize $(-c)^Tx$
+	\item Upper bound constraints can be recast to be equivalent to lower bound constraints\\ $\sum s_ix_i \geq b \iff \sum(-a_i)x_i\leq-b$
+	\item Inequality constraints can get to an equality constraints\\ $\sum a_ix=b\iff \sum a_ix_i \geq b$ \& $\sum a_i x_i \leq b$
+	\item $x$ is unconstrained(can be positive or negative) $\iff$ $x^+-x^-$ $x^+\geq0$, $x^- \geq 0$
+\end{enumerate}
+	\begin{align*}
+	\alpha &\geq \beta &\sum a_ix_i \geq b_j\\
+	\beta + \underbrace{t}_{\geq 0} &= \alpha
+	&\sum a_ix_j-\underbrace{s_j}_\text{slack variable}=b_j
+	\end{align*}
+
+\textbf{Remarks}
+\begin{itemize}
+	\item $n$ vars + $m$ constants $\to$ $O(n+m)$ vars \& $O(n+m)$ constraints
+	\item Feasible $sol^1: x\in \mathbb{R}^n$ satisfying all constrains
+	\item Optimal $sol^1: x\in \mathbb{R}^n$ : feasible $sol^n$ \& minimize/maximize the obj function
+\end{itemize}
+
+\subsection{Fourier-Motzkin elimination}
+\begin{enumerate}
+	\item Introduce a new var
+	\item Reduce dimensions
+\end{enumerate}
+For variable $x_1$ arrange constraints into three groups
+\begin{enumerate}
+	\item has positive coefficients
+	\item has negative coefficients
+	\item do not involve $x_1$ at all
+\end{enumerate}
+\begin{minipage}{8em}
+	\begin{align*}
+	&\text{min } c^Tx\\
+	&\text{subj to} Ax \geq b\\
+	\end{align*}
+\end{minipage}
+$\Longleftrightarrow$
+\begin{minipage}{8em}
+	\begin{align*}
+	&\text{min } &x_n+1\\
+	&\text{subj to} &Ax \geq b\\
+	&&c^Tx \leq x_{n+1}
+	\end{align*}
+\end{minipage}\\
+\textbf{Example}
+\begin{eqnarray}
+	-2x_1 &-x_2&+3x_3 \geq 5\\
+	-x_1 &+2x_2&-4x_3 \geq 1\\
+	&5x_2&+7x_3 \geq 4\\
+	x_1 &&-7x_3 \geq 1
+\end{eqnarray}
+How to eliminate $x_1?$
+\begin{multicols}{2}
+\begin{align*}
+p &= \text{constraints where the coeff of }x_1 > 0\\
+N &= \text{constraints where the coeff of }x_1 < 0\\
+Z &= \text{constraints where the coeff of }x_1 = 0\\
+&=[M]\backslash(P\cup N)
+\end{align*}
+\columnbreak
+
+\begin{align*}
+p &= \{1,4\}\\
+N &= \{2\}\\
+Z &= \{3\}
+\end{align*}
+\end{multicols}
+On $P$ constraints
+$$i \in [P]: \underbrace{\left(\frac{a_{i1}x_1}{a_{i1}}\right)}_1 + \frac{a_{i2}x_2}{a_{i1}} + \dots + \frac{a_{in}x_n}{a_{i1}} \geq \frac{b_i}{a_{i1}}$$
+$$\Longleftrightarrow$$
+$$x_1 \geq \frac{b_i}{a_{i1}}-\left[\sum^n_{j=2}\left(\frac{a_{ij}}{a_{i1}}\right)xj\right]-(\text{Lower bound $x_1 \geq blah_i$})$$
+
+On $N$ constraints
+$$i \in [N]: \underbrace{\left(\frac{a_{i1}x_1}{a_{i1}}\right)}_1 + \frac{a_{i2}x_2}{a_{i1}} + \dots + \frac{a_{in}x_n}{a_{i1}} \leq \frac{b_i}{a_{i1}}-(\text{Upper bound $x_1 \leq blah_i$})$$
+$$\Longleftrightarrow$$
+$$x_1 \leq \frac{b_i}{a_{i1}}-\left[\sum^n_{j=2}\left(\frac{a_{ij}}{a_{i1}}\right)xj\right]$$
+We will get new constraints as follows: for each $i\in P$ and $i' \in N$, we get $blah_i \leq x_i$ and $x_{i'} \leq blah_{i'}$ so we will get $blah_i \leq blah_{i'}$
+
+We took $|P|+|N|$ constraints and change it to $|P|\cdot|N|$ which is $\leq m^2$, so for each $n$ variables we will end up with $m^{2^n}$ constraints
+\subsubsection{Gaussian Elimination}
+take the first $\sum_ja_{1j}x_j=b_1$ and rewriting it as $x_1 = a_{11}^{-1}(b_1-\sum_{j=2}^na_{1j}x_j)$ and substituting this into the other constraints (This can be done in polynomial time)
+\begin{itemize}
+	\item \#operations done in polynomial in $n$ and $m$
+	\item The size of the number in the intermediate stages of the algorithm are $poly(n,m,\log|a_{ij}|)$
+\end{itemize}
+
+\subsection{Equational Form Solving}
+Assume our LP is in this form 
+$$min\{c^Tx|Ax=b,x\geq0\}$$
+Assume $A_x=b$ has $\geq1$ sol$^n$\\
+Without loss of generality the rows of $A$ are linearly independent ($rank(A) \geq m$)
+
+Given a subset $B \subseteq [n]$ we define $A_B$ to be the concatenation of the $B$ columns of $A$ and $s_B$ to be the column vector consisting of the variables $\{x_i|i\in B\}$ If $A_B$ is linearly independent then $A_B$ has full rank \& invertible($x_B=A_B^{-1}b$) so
+$$A_Bx_B=b$$
+
+\end{document}

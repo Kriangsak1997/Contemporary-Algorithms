@@ -1,0 +1,451 @@
+\documentclass[12pt]{article}
+\usepackage[english]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{scribe}
+\usepackage{listings}
+\usepackage{graphics, graphicx}
+\usepackage{enumerate}
+\usepackage{enumitem}
+\usepackage{tcolorbox}
+\usepackage{adjustbox}
+\usepackage{mathtools}
+\usepackage{amsmath}
+\usepackage[edges]{forest}
+\usepackage{multicol}
+\setlength{\columnsep}{1cm}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+
+\newcommand{\forceindent}{\leavevmode{\parindent=1.3em\indent}}
+\newcommand{\dbt}{\forceindent \forceindent}
+\graphicspath{ {./images/} }
+
+\CourseName{Comtemporary Algorithms T.II/2019-20}
+\Scribe{Kanokpon \& Kanokpon}
+\Lecturer{Dr. Kanat Tangwongsan}
+\LectureNumber{9}
+\LectureDate{15 January 2020}
+\LectureTitle{Parallel III}
+
+\lstset{style=mystyle}
+
+\newlist{steps}{enumerate}{1}
+\setlist[steps, 1]{label = Step \arabic*:}
+
+\begin{document}
+\MakeScribeTop
+
+\section{\_fix}
+$$
+\begin{forest}
+	for tree={grow=south,
+		circle, draw, minimum size=3ex, inner sep=1pt,
+		s sep=7mm
+	}
+	[7
+	[5
+	[3][6][1]
+	]
+	[5]
+	]\\
+\end{forest}
+$$
+
+\begin{multicols}{2}
+	\textbf{leafix+}
+	
+	\begin{forest}
+		for tree={grow=south,
+			circle, draw, minimum size=3ex, inner sep=1pt,
+			s sep=7mm
+		}
+		[24
+		[10
+		[0][0][0]
+		]
+		[0]
+		]
+	\end{forest}
+\columnbreak
+
+\textbf{rootfix+}
+
+\begin{forest}
+	for tree={grow=south,
+		circle, draw, minimum size=3ex, inner sep=1pt,
+		s sep=7mm
+	}
+	[0
+	[7
+	[12][12][12]
+	]
+	[7]
+	]
+\end{forest}
+\end{multicols}
+
+$
+w:O(n)
+$
+
+$s:O(\log?n)
+$
+
+$$\begin{forest}
+	for tree={grow=south,
+		circle, draw, minimum size=3ex, inner sep=1pt,
+		s sep=7mm
+	}
+	[[
+	[[
+		[
+		[
+			[
+				[
+					[]
+				]
+				[
+						[
+							[
+								[]
+								[
+									[]
+								]
+							]
+						]
+						[]
+				]
+			]
+		]
+		[
+			[
+				[]
+			]
+		]
+		]
+	][
+		[][
+			[][
+				[][]
+			]
+		]
+	]
+	]
+	]
+	]
+\end{forest}$$
+
+\begin{center}
+	Mixture of list-like tree and normal tree\\ 
+\end{center}
+
+\begin{multicols}{3}
+	\begin{forest}
+		for tree={grow=south,edge={->},
+			circle, draw, minimum size=3ex, inner sep=1pt,
+			s sep=7mm
+		}
+		[T
+		[\textcolor{red}{H}
+		[\textcolor{red}{T}
+		[T
+		[\textcolor{red}{H}
+		[\textcolor{red}{T}
+		[T
+		[\textcolor{red}{H}
+		[\textcolor{red}{T}]
+		]
+		]
+		]
+		]
+		]
+		]
+		]
+		]
+	\end{forest}
+	List-like tree
+	
+	\columnbreak
+	\begin{forest}
+		for tree={grow=south,edge={->},
+			circle, draw, minimum size=3ex, inner sep=1pt,
+			s sep=7mm
+		}
+		[[[[[]]]]]
+	\end{forest}
+	After pair up T$\to$H
+	\columnbreak
+	\begin{enumerate}
+		\item Many pairs
+		\item Disjoint Pairs
+		\begin{itemize}
+			\item Pair up T$\to$H
+			\item Claim1: pairs are disjoint
+			\item Claim2: $\mathbb{E} [\text{Pairs} ]=\frac{n-1}{4}$
+		\end{itemize}
+	\end{enumerate}
+\end{multicols}
+$\begin{rcases*}
+w:w(n)=w(n')+O(n)\\
+s:s(n)=s(n')+O(\log n)
+\end{rcases*}$
+$\begin{matrix}
+	w(n)=O(n)\\
+	s(n)=O(\log n)
+\end{matrix}$\\
+
+$\# n'=$ remaining node
+
+$n'=n-\#$  pairs
+
+$\mathbb{E}[n']\geq n-\frac{n-1}{4}\geq\frac{3n}{4}; \forall n\geq 2$
+
+\section{Miller-Reif: Tree contraction}
+\begin{itemize}
+	\item \textbf{rake:} drop all leaves(unless that leaf is adjacent to another leaf, in that case drop only one of them)
+	\item \textbf{compress:} produces $T'$ by finding contracting disjoint pairs
+\end{itemize}
+
+\begin{multicols}{2}
+
+	\begin{forest}
+		for tree={grow=south,edge={->},
+			circle, draw, minimum size=3ex, inner sep=1pt,
+			s sep=7mm
+		}
+		[v
+		[]
+			[u
+				[w
+				[][][][]
+				]
+			]
+		[]
+		]
+	\end{forest}
+
+	\columnbreak
+	\begin{forest}
+		for tree={grow=south,edge={->},
+		circle, draw, minimum size=3ex, inner sep=1pt,
+		s sep=7mm
+	}
+	[v
+	[]
+	[w
+	[][][]
+	]
+	[]
+	]
+	\end{forest}
+\end{multicols}
+\begin{lstlisting}[language=Python]
+def treeContract(T):
+	if T has only deg-0 nodes:
+		return
+	Tr = rake(T)
+	Tc = compress(Tr)
+	treeContract(Tc)
+\end{lstlisting}
+\newpage
+\begin{multicols}{2}
+	\begin{forest}
+	for tree={grow=south,
+		circle, draw, minimum size=3ex, inner sep=1pt,
+		s sep=4mm
+	}
+	[[
+	[[
+	[
+	[
+	[
+	[
+	[\textcolor{red}{X}]
+	]
+	[
+	[
+	[
+	[\textcolor{red}{X}]
+	[
+	[\textcolor{red}{X}]
+	]
+	]
+	]
+	[\textcolor{red}{X}]
+	]
+	]
+	]
+	[
+	[
+	[\textcolor{red}{X}]
+	]
+	]
+	]
+	][
+	[\textcolor{red}{X}][
+	[\textcolor{red}{X}][
+	[\textcolor{red}{X}][\textcolor{red}{X}]
+	]
+	]
+	]
+	]
+	]
+	]
+	\end{forest}
+	\columnbreak
+	$$\begin{forest}
+	for tree={grow=south,
+		circle, draw, minimum size=3ex, inner sep=1pt,
+		s sep=4mm
+	}
+	[[
+	[[
+	[
+	[
+	[
+	[]
+	[
+	[
+	[
+	[
+	]
+	]
+	]
+	]
+	]
+	]
+	[
+	[
+	]
+	]
+	]
+	][
+	[
+	[
+	]
+	]
+	]
+	]
+	]
+	]
+	\end{forest}$$
+\end{multicols}
+
+$V(T)=$ vtxes of deg2 (except root)
+\begin{enumerate}
+	\item Every vtx flips a coin
+	\item For each $u\in u(T)$
+\end{enumerate}
+if $u$ is a \underline{tails} \& next($u$) is \underline{heads} $\to$ \textbf{contract}
+
+$$\begin{forest}
+for tree={grow=south,
+	circle, draw, minimum size=3ex, inner sep=1pt,
+	s sep=7mm
+}
+[T[H
+[T[T
+[H
+[T
+[H
+[T]
+[T
+[H
+[T
+[T
+]
+]
+]
+]
+]
+]
+[T
+[H
+]
+]
+]
+][H
+[H
+[H
+]
+]
+]
+]
+]
+]
+\end{forest}$$
+
+\begin{eqnarray*}
+	\mathbb{E}[\# \text{Pairs}] &=&(\frac1{4})|u(T)|\\
+	\text{Lemma:} \mathbb{E}[v(T'')] &\leq& \beta v(T), \text{ where } \beta = \frac{23}{24}\\
+	\text{Let } n_i &=& \# \text{ vtxes in } T \text{ with degree } i\\
+	n-n_1 &=& \text{ some of } n_2\\
+	\mathbb{E}[v(T'')] &\leq& n-n_1-\frac1{4}|u(T)|\\
+	&=& n-n_1-\frac{n_2}{4}\\
+	&\leq& n-\frac{n_1}{4}-\frac{n_2}{4}\\
+	&=& n-\frac1{4}(n_1+n_2)\\
+	&\leq& n-\frac{1}{4}*\frac{n}{3} = \frac{11}{12}n
+\end{eqnarray*}
+
+\textbf{Claim} $n_1+n_2 \geq \frac{n}{3}$
+
+\begin{eqnarray*}
+	x-RV&=&\text{deg } v+x \text{drawn at random}\\
+	\mathbb{E}[x] &=& \frac{2(n-1)}{n} \leq 2\\
+	\Pr [x \geq 3] &\leq& \frac{\mathbb{E}[x]}{3} = \frac{2}{3}\\
+	\frac{n_1+n_2}{n}&=&\Pr[x\leq2]\\\\
+	w(n)&=&w(n')+O(n)\\
+	s(n)&=&s(n')+O(\log n)\\
+	\because \mathbb{E}[n'] &=& \beta n\\
+	\therefore w(n)&=&O(n)\\
+	s(n)&=&s(n')=O(\log^2n)
+\end{eqnarray*}
+
+\section{Maximal Independent Set (MIS)}
+
+Definition: Given a graph $G=(V,E)$, a set $S\subseteq V$ is a maximal independent set(MIS) if
+\begin{enumerate}
+	\item Independent: No two vtxes $u,v \in s$ are adjacent
+	\item Maximal: No node outside of $s$ can be added and keep independent
+\end{enumerate}
+
+\begin{eqnarray*}
+m_i &=& \# \text{edges at the end of round } i\\
+m_0&=&m=|E|\\
+\text{Lemma } \mathbf{E}[m_i-m_{i+1}] &\geq& \frac{m_i}{2}\\
+m+\frac{m}{2}+\dots &=& O(m)\\
+s(u) &=& s(n')+O(\log n)\\
+&&\text{This implies that } O(\log m) = O(\log n) \text{rounds in expectation}
+\end{eqnarray*}
+
+$
+\text{Luby's Algorithm}\left\{
+\begin{array}{ll}
+1.\text{Each node }v \text{ picks} r_v \in_R[0,1]\\
+2.\text{A node }v \text{joins} S \text{ if } r_v \text{ is a strict max among } N(v)\\
+3.\text{For each node } v \text{ that joined } s (2) \text{ kill } r \& N(v) 
+\end{array}
+\right.
+$
+\newpage
+\begin{verbatim}
+o--\               W'
+o---W-+           /
+o--/   \         /
+	        o--u----v
+	          / \
+	         o   \
+	              V'
+\end{verbatim}
+
+Let $e=\{u,v\}$ and $w$ is a strict local maximum. Then $w$ and its neighbors will be removed. Nevertheless, $e$ can be killed by multiple nodes. 
+
+Node $w$ single-handedly kills an edge $e=\{u,v\}$ if $r_w$ is the largest among $N(w) \cup N(u)$
+\begin{center}
+$m_i-m_{i+1} \geq$ \#edges single-handedly killed
+\end{center}
+$$
+\frac1{2}\sum_{\{u,w\} \in E}\left(\frac{1}{deg(w)+deg(u)}*deg(u)+\frac{deg(w)}{deg(w)+deg(u)}\right) = \frac{m}2
+$$
+
+\end{document}
